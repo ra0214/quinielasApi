@@ -39,6 +39,16 @@ func Parse(value string) (Money, error) {
 	return Money{d.Round(MontoScale)}, nil
 }
 
+// MustParse es Parse para valores literales conocidos; entra en panico si el
+// texto no es un monto valido.
+func MustParse(value string) Money {
+	m, err := Parse(value)
+	if err != nil {
+		panic(err)
+	}
+	return m
+}
+
 func FromFloat64(value float64) Money {
 	return Money{decimal.NewFromFloat(value).Round(MontoScale)}
 }
@@ -53,6 +63,29 @@ func (m Money) Sub(other Money) Money {
 
 func (m Money) MulPercent(p Percent) Money {
 	return Money{m.Decimal.Mul(p.Decimal).Div(OneHundred).Round(MontoScale)}
+}
+
+// MulDiv devuelve m * (factor / divisor) redondeado a la escala indicada.
+// Se usa para calcular porciones proporcionales antes de ajustar el redondeo.
+func (m Money) MulDiv(factor, divisor Money, scale int32) Money {
+	return Money{m.Decimal.Mul(factor.Decimal).Div(divisor.Decimal).Round(scale)}
+}
+
+func (m Money) RoundDown(places int32) Money {
+	return Money{m.Decimal.RoundDown(places)}
+}
+
+func (m Money) Round(places int32) Money {
+	return Money{m.Decimal.Round(places)}
+}
+
+func (m Money) Div(other Money) Money {
+	return Money{m.Decimal.Div(other.Decimal)}
+}
+
+// Centimos es 0.01, la unidad minima con la que se resuelve un reparto de dinero.
+func Centimos() Money {
+	return Money{decimal.New(1, -2)}
 }
 
 func (m Money) AfterRetention(p Percent) Money {

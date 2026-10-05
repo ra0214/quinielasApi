@@ -73,7 +73,7 @@ func main() {
 
 	// 9. Registrar Rutas de Premios
 	premioRouter := gin.New()
-	premiosInfra.SetupRouterPremios(premioRouter, premioRepo)
+	premiosInfra.SetupRouterPremios(premioRouter, premioRepo, aporteRepo, quinielaRepo)
 	for _, route := range premioRouter.Routes() {
 		r.Handle(route.Method, route.Path, route.HandlerFunc)
 	}

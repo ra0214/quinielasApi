@@ -10,6 +10,10 @@ type IPremio interface {
 	DeletePremio(idPremio int32) error
 	GetPremioByQuinielaID(idQuiniela int32) (*Premio, error)
 	GetAllPremios() ([]Premio, error)
+
+	SaveReparto(reparto *RepartoPremio) error
+	GetRepartoByQuiniela(idQuiniela int32) (*RepartoPremio, error)
+	ExistsReparto(idQuiniela int32) (bool, error)
 }
 
 type Premio struct {

@@ -15,6 +15,12 @@ import (
 
 type fakePremioRepo struct {
 	guardado *domain.Premio
+
+	// Estado que usan las pruebas de reparto.
+	premio      *domain.Premio
+	reparto     *domain.RepartoPremio
+	guardados   int
+	yaRepartido bool
 }
 
 func (f *fakePremioRepo) SavePremio(idQuiniela int32, montoBruto money.Money) (*domain.Premio, error) {
@@ -27,10 +33,24 @@ func (f *fakePremioRepo) SavePremio(idQuiniela int32, montoBruto money.Money) (*
 func (f *fakePremioRepo) DeletePremio(idPremio int32) error { return nil }
 
 func (f *fakePremioRepo) GetPremioByQuinielaID(idQuiniela int32) (*domain.Premio, error) {
-	return nil, nil
+	return f.premio, nil
 }
 
 func (f *fakePremioRepo) GetAllPremios() ([]domain.Premio, error) { return nil, nil }
+
+func (f *fakePremioRepo) SaveReparto(reparto *domain.RepartoPremio) error {
+	f.reparto = reparto
+	f.guardados++
+	return nil
+}
+
+func (f *fakePremioRepo) GetRepartoByQuiniela(idQuiniela int32) (*domain.RepartoPremio, error) {
+	return f.reparto, nil
+}
+
+func (f *fakePremioRepo) ExistsReparto(idQuiniela int32) (bool, error) {
+	return f.yaRepartido, nil
+}
 
 func newController(repo domain.IPremio) *CreatePremioController {
 	return NewCreatePremioController(application.NewCreatePremio(repo))

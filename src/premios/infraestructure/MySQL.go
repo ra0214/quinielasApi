@@ -1,6 +1,8 @@
 package infraestructure
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"quinielas/src/config"
@@ -66,7 +68,12 @@ func (mysql *MySQL) GetPremioByQuinielaID(idQuiniela int32) (*domain.Premio, err
 	var p domain.Premio
 	err := row.Scan(&p.IDPremio, &p.IDQuiniela, &p.MontoBruto, &p.PorcentajeRetencion, &p.MontoNeto, &p.FechaRegistro)
 	if err != nil {
-		return nil, fmt.Errorf("premio no encontrado: %v", err)
+		// sql.ErrNoRows se devuelve sin envolver para que el caso de uso lo
+		// distinga de un fallo real de conexion.
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("error al consultar el premio: %w", err)
 	}
 
 	return &p, nil
