@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"quinielas/src/config/middleware"
 
 	aportesInfra "quinielas/src/aportes/infraestructure"
@@ -81,10 +82,15 @@ func main() {
 	// 10. Configuración del servidor
 	r.SetTrustedProxies([]string{"127.0.0.1"})
 
-	log.Println("Servidor corriendo en http://localhost:8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-	// Iniciar servidor
-	if err := r.Run(":8080"); err != nil {
+	log.Printf("Servidor corriendo en http://localhost:%s", port)
+
+	// Escuchar explícitamente en 0.0.0.0 para que Railway pueda enrutar el tráfico
+	if err := r.Run("0.0.0.0:" + port); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)
 	}
 }
