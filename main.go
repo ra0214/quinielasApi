@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+
+	"github.com/gin-gonic/gin"
 	"quinielas/src/config/middleware"
 
 	aportesInfra "quinielas/src/aportes/infraestructure"
@@ -12,18 +14,14 @@ import (
 	premiosInfra "quinielas/src/premios/infraestructure"
 	quinielasInfra "quinielas/src/quinielas/infraestructure"
 	saldosInfra "quinielas/src/saldos/infraestructure"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// 1. Crear una SOLA instancia de Gin
 	r := gin.Default()
 
-	// 2. Usar el Middleware de CORS configurado en src/config/middleware/middleware.go
 	r.Use(middleware.NewCorsMiddleware())
 
-	// 3. Inicializar Repositorios MySQL de cada módulo
+	// Inicializar Repositorios
 	clienteRepo := clientesInfra.NewMySQL()
 	edicionRepo := edicionesInfra.NewMySQL()
 	quinielaRepo := quinielasInfra.NewMySQL()
@@ -32,7 +30,7 @@ func main() {
 	movimientoRepo := movimientosInfra.NewMySQL()
 	premioRepo := premiosInfra.NewMySQL()
 
-	// 4. Pasar la MISMA instancia `r` a todos los routers
+	// Registrar Rutas directamente en la misma instancia 'r'
 	clientesInfra.SetupRouterClientes(r, clienteRepo)
 	edicionesInfra.SetupRouterEdiciones(r, edicionRepo)
 	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo)
@@ -41,16 +39,15 @@ func main() {
 	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo)
 	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo)
 
-	// 5. Configuración del servidor
-	r.SetTrustedProxies([]string{"127.0.0.1"})
-
+	// Obtener el puerto dinámico de Railway
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("🚀 Servidor iniciando en el puerto :%s", port)
+	log.Printf("🚀 Servidor escuchando en el puerto :%s", port)
 
+	// Escuchar en 0.0.0.0
 	if err := r.Run("0.0.0.0:" + port); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)
 	}

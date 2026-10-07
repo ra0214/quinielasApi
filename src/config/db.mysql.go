@@ -1,9 +1,11 @@
 package config
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
@@ -30,7 +32,7 @@ func GetDBPool() *Conn_MySQL {
 		dbPort = "3306"
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbPass, dbHost, dbPort, dbSchema)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&timeout=5s", dbUser, dbPass, dbHost, dbPort, dbSchema)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -40,7 +42,10 @@ func GetDBPool() *Conn_MySQL {
 
 	db.SetMaxOpenConns(10)
 
-	if err := db.Ping(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
 		db.Close()
 		error = fmt.Sprintf("error al verificar la conexión a la base de datos: %v", err)
 	}
