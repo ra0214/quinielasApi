@@ -3,7 +3,6 @@ package config
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -17,21 +16,26 @@ type Conn_MySQL struct {
 
 func GetDBPool() *Conn_MySQL {
 	error := ""
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatalf("Error al cargar el archivo .env: %v", err)
-	}
+
+	// Simplemente ignora el error si no existe el archivo .env
+	_ = godotenv.Load(".env")
 
 	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASS")
 	dbSchema := os.Getenv("DB_SCHEMA")
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", dbUser, dbPass, dbHost, dbSchema)
-	
+	if dbPort == "" {
+		dbPort = "3306"
+	}
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbPass, dbHost, dbPort, dbSchema)
+
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		error = fmt.Sprintf("error al abrir la base de datos: %v", err)
+		return &Conn_MySQL{Err: error}
 	}
 
 	db.SetMaxOpenConns(10)
