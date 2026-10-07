@@ -17,12 +17,13 @@ import (
 )
 
 func main() {
+	// 1. Crear una SOLA instancia de Gin
 	r := gin.Default()
 
-	// 1. Usar el Middleware de CORS configurado en src/config/middleware/middleware.go
+	// 2. Usar el Middleware de CORS configurado en src/config/middleware/middleware.go
 	r.Use(middleware.NewCorsMiddleware())
 
-	// 2. Inicializar Repositorios MySQL de cada módulo
+	// 3. Inicializar Repositorios MySQL de cada módulo
 	clienteRepo := clientesInfra.NewMySQL()
 	edicionRepo := edicionesInfra.NewMySQL()
 	quinielaRepo := quinielasInfra.NewMySQL()
@@ -31,55 +32,16 @@ func main() {
 	movimientoRepo := movimientosInfra.NewMySQL()
 	premioRepo := premiosInfra.NewMySQL()
 
-	// 3. Registrar Rutas de Clientes
-	clienteRouter := clientesInfra.SetupRouter(clienteRepo)
-	for _, route := range clienteRouter.Routes() {
-		r.Handle(route.Method, route.Path, route.HandlerFunc)
-	}
+	// 4. Pasar la MISMA instancia `r` a todos los routers
+	clientesInfra.SetupRouterClientes(r, clienteRepo)
+	edicionesInfra.SetupRouterEdiciones(r, edicionRepo)
+	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo)
+	saldosInfra.SetupRouterSaldos(r, saldoRepo)
+	aportesInfra.SetupRouterAportes(r, aporteRepo)
+	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo)
+	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo)
 
-	// 4. Registrar Rutas de Ediciones
-	edicionRouter := gin.New()
-	edicionesInfra.SetupRouterEdiciones(edicionRouter, edicionRepo)
-	for _, route := range edicionRouter.Routes() {
-		r.Handle(route.Method, route.Path, route.HandlerFunc)
-	}
-
-	// 5. Registrar Rutas de Quinielas
-	quinielaRouter := gin.New()
-	quinielasInfra.SetupRouterQuinielas(quinielaRouter, quinielaRepo)
-	for _, route := range quinielaRouter.Routes() {
-		r.Handle(route.Method, route.Path, route.HandlerFunc)
-	}
-
-	// 6. Registrar Rutas de Saldos
-	saldoRouter := gin.New()
-	saldosInfra.SetupRouterSaldos(saldoRouter, saldoRepo)
-	for _, route := range saldoRouter.Routes() {
-		r.Handle(route.Method, route.Path, route.HandlerFunc)
-	}
-
-	// 7. Registrar Rutas de Aportes
-	aporteRouter := gin.New()
-	aportesInfra.SetupRouterAportes(aporteRouter, aporteRepo)
-	for _, route := range aporteRouter.Routes() {
-		r.Handle(route.Method, route.Path, route.HandlerFunc)
-	}
-
-	// 8. Registrar Rutas de Movimientos
-	movimientoRouter := gin.New()
-	movimientosInfra.SetupRouterMovimientos(movimientoRouter, movimientoRepo)
-	for _, route := range movimientoRouter.Routes() {
-		r.Handle(route.Method, route.Path, route.HandlerFunc)
-	}
-
-	// 9. Registrar Rutas de Premios
-	premioRouter := gin.New()
-	premiosInfra.SetupRouterPremios(premioRouter, premioRepo, aporteRepo, quinielaRepo)
-	for _, route := range premioRouter.Routes() {
-		r.Handle(route.Method, route.Path, route.HandlerFunc)
-	}
-
-	// 10. Configuración del servidor
+	// 5. Configuración del servidor
 	r.SetTrustedProxies([]string{"127.0.0.1"})
 
 	port := os.Getenv("PORT")
@@ -87,9 +49,8 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Servidor corriendo en http://localhost:%s", port)
+	log.Printf("🚀 Servidor iniciando en el puerto :%s", port)
 
-	// Escuchar explícitamente en 0.0.0.0 para que Railway pueda enrutar el tráfico
 	if err := r.Run("0.0.0.0:" + port); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)
 	}

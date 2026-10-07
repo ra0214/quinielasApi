@@ -7,9 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(repo domain.ICliente) *gin.Engine {
-	r := gin.Default()
-
+func SetupRouterClientes(r *gin.Engine, repo domain.ICliente) {
 	// Inicializar Casos de Uso
 	createUseCase := application.NewCreateCliente(repo)
 	deleteUseCase := application.NewDeleteCliente(repo)
@@ -34,6 +32,4 @@ func SetupRouter(repo domain.ICliente) *gin.Engine {
 		api.PUT("/:id", editController.Execute)
 		api.DELETE("/:id", deleteController.Execute)
 	}
-
-	return r
 }
