@@ -8,6 +8,7 @@ import (
 type IMovimiento interface {
 	SaveMovimiento(idCliente int32, idQuiniela *int32, tipo string, monto money.Money, descripcion string) (*Movimiento, error)
 	DeleteMovimiento(idMovimiento int32) error
+	GetMovimientoByID(idMovimiento int32) (*Movimiento, error)
 	GetMovimientosByClienteID(idCliente int32) ([]Movimiento, error)
 	GetAllMovimientos() ([]Movimiento, error)
 }

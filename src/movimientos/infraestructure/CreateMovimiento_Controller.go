@@ -1,8 +1,10 @@
 package infraestructure
 
 import (
+	"errors"
 	"net/http"
 	"quinielas/src/movimientos/application"
+	saldosDomain "quinielas/src/saldos/domain"
 	"quinielas/src/shared/money"
 
 	"github.com/gin-gonic/gin"
@@ -43,6 +45,10 @@ func (cm *CreateMovimientoController) Execute(c *gin.Context) {
 
 	movimiento, err := cm.useCase.Execute(body.IDCliente, body.IDQuiniela, body.Tipo, body.Monto, body.Descripcion)
 	if err != nil {
+		if errors.Is(err, saldosDomain.ErrSaldoInsuficiente) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

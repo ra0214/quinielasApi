@@ -61,6 +61,11 @@ func (m Money) Sub(other Money) Money {
 	return Money{m.Decimal.Sub(other.Decimal).Round(MontoScale)}
 }
 
+// Neg devuelve el monto con signo cambiado.
+func (m Money) Neg() Money {
+	return Money{m.Decimal.Neg()}
+}
+
 func (m Money) MulPercent(p Percent) Money {
 	return Money{m.Decimal.Mul(p.Decimal).Div(OneHundred).Round(MontoScale)}
 }

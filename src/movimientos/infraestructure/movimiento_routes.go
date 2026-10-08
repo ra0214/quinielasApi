@@ -3,13 +3,17 @@ package infraestructure
 import (
 	"quinielas/src/movimientos/application"
 	"quinielas/src/movimientos/domain"
+	saldosApp "quinielas/src/saldos/application"
+	saldosDomain "quinielas/src/saldos/domain"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouterMovimientos(r *gin.Engine, repo domain.IMovimiento) {
-	createUseCase := application.NewCreateMovimiento(repo)
-	deleteUseCase := application.NewDeleteMovimiento(repo)
+func SetupRouterMovimientos(r *gin.Engine, repo domain.IMovimiento, saldoRepo saldosDomain.ISaldo) {
+	ajustador := saldosApp.NewAjustarSaldo(saldoRepo)
+
+	createUseCase := application.NewCreateMovimiento(repo, ajustador)
+	deleteUseCase := application.NewDeleteMovimiento(repo, ajustador)
 	viewUseCase := application.NewViewMovimiento(repo)
 
 	createController := NewCreateMovimientoController(createUseCase)

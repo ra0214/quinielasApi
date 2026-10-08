@@ -36,7 +36,7 @@ func main() {
 	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo)
 	saldosInfra.SetupRouterSaldos(r, saldoRepo)
 	aportesInfra.SetupRouterAportes(r, aporteRepo)
-	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo)
+	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo, saldoRepo)
 	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo)
 
 	// Obtener el puerto dinámico de Railway

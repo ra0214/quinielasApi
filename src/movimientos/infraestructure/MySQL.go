@@ -60,6 +60,26 @@ func (mysql *MySQL) DeleteMovimiento(idMovimiento int32) error {
 	return nil
 }
 
+func (mysql *MySQL) GetMovimientoByID(idMovimiento int32) (*domain.Movimiento, error) {
+	query := "SELECT id_movimiento, id_cliente, id_quiniela, tipo, monto, descripcion, fecha FROM movimientos WHERE id_movimiento = ?"
+	row := mysql.conn.FetchRow(query, idMovimiento)
+
+	var m domain.Movimiento
+	var idQ sql.NullInt32
+	if err := row.Scan(&m.IDMovimiento, &m.IDCliente, &idQ, &m.Tipo, &m.Monto, &m.Descripcion, &m.Fecha); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("movimiento %d no encontrado", idMovimiento)
+		}
+		return nil, fmt.Errorf("error al obtener movimiento: %v", err)
+	}
+	if idQ.Valid {
+		val := idQ.Int32
+		m.IDQuiniela = &val
+	}
+
+	return &m, nil
+}
+
 func (mysql *MySQL) GetMovimientosByClienteID(idCliente int32) ([]domain.Movimiento, error) {
 	query := "SELECT id_movimiento, id_cliente, id_quiniela, tipo, monto, descripcion, fecha FROM movimientos WHERE id_cliente = ? ORDER BY fecha DESC"
 	rows, err := mysql.conn.FetchRows(query, idCliente)

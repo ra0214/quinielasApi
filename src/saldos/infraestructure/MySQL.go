@@ -51,7 +51,15 @@ func (mysql *MySQL) GetSaldoByClienteID(idCliente int32) (*domain.Saldo, error) 
 }
 
 func (mysql *MySQL) GetAllSaldos() ([]domain.Saldo, error) {
-	query := "SELECT id_cliente, saldo_favor, saldo_deuda FROM saldos ORDER BY id_cliente ASC"
+	// LEFT JOIN: incluimos todos los clientes aunque no tengan fila en saldos
+	// (aparecen con saldo 0 y pueden editarse).
+	query := `
+		SELECT c.id_cliente,
+		       COALESCE(s.saldo_favor, 0) AS saldo_favor,
+		       COALESCE(s.saldo_deuda, 0) AS saldo_deuda
+		FROM clientes c
+		LEFT JOIN saldos s ON s.id_cliente = c.id_cliente
+		ORDER BY c.id_cliente ASC`
 	rows, err := mysql.conn.FetchRows(query)
 	if err != nil {
 		return nil, fmt.Errorf("error al obtener saldos: %v", err)
@@ -74,11 +82,31 @@ func (mysql *MySQL) GetSaldosFiltrados(filtro string) ([]domain.Saldo, error) {
 	var query string
 	switch filtro {
 	case "deben":
-		query = "SELECT id_cliente, saldo_favor, saldo_deuda FROM saldos WHERE saldo_deuda > 0 ORDER BY saldo_deuda DESC"
+		query = `
+			SELECT c.id_cliente,
+			       COALESCE(s.saldo_favor, 0) AS saldo_favor,
+			       COALESCE(s.saldo_deuda, 0) AS saldo_deuda
+			FROM clientes c
+			LEFT JOIN saldos s ON s.id_cliente = c.id_cliente
+			WHERE COALESCE(s.saldo_deuda, 0) > 0
+			ORDER BY COALESCE(s.saldo_deuda, 0) DESC`
 	case "favor":
-		query = "SELECT id_cliente, saldo_favor, saldo_deuda FROM saldos WHERE saldo_favor > 0 ORDER BY saldo_favor DESC"
+		query = `
+			SELECT c.id_cliente,
+			       COALESCE(s.saldo_favor, 0) AS saldo_favor,
+			       COALESCE(s.saldo_deuda, 0) AS saldo_deuda
+			FROM clientes c
+			LEFT JOIN saldos s ON s.id_cliente = c.id_cliente
+			WHERE COALESCE(s.saldo_favor, 0) > 0
+			ORDER BY COALESCE(s.saldo_favor, 0) DESC`
 	case "ceros":
-		query = "SELECT id_cliente, saldo_favor, saldo_deuda FROM saldos WHERE saldo_favor = 0 AND saldo_deuda = 0"
+		query = `
+			SELECT c.id_cliente,
+			       COALESCE(s.saldo_favor, 0) AS saldo_favor,
+			       COALESCE(s.saldo_deuda, 0) AS saldo_deuda
+			FROM clientes c
+			LEFT JOIN saldos s ON s.id_cliente = c.id_cliente
+			WHERE COALESCE(s.saldo_favor, 0) = 0 AND COALESCE(s.saldo_deuda, 0) = 0`
 	default:
 		return mysql.GetAllSaldos()
 	}
