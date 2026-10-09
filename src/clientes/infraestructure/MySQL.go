@@ -123,10 +123,30 @@ func (mysql *MySQL) UpdateCliente(id int32, nombre string, telefono string) erro
 }
 
 func (mysql *MySQL) DeleteCliente(id int32) error {
-	query := "DELETE FROM clientes WHERE id_cliente = ?"
-	result, err := mysql.conn.ExecutePreparedQuery(query, id)
+	// Las tablas saldos, aportes y movimientos referencian a clientes con FK,
+	// así que primero limpiamos esas dependencias dentro de una transacción.
+	tx, err := mysql.conn.DB.Begin()
 	if err != nil {
+		return fmt.Errorf("error al iniciar la transacción: %v", err)
+	}
+
+	for _, tabla := range []string{"saldos", "movimientos", "aportes"} {
+		query := "DELETE FROM " + tabla + " WHERE id_cliente = ?"
+		if _, err := tx.Exec(query, id); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error al eliminar dependencias de %s: %v", tabla, err)
+		}
+	}
+
+	query := "DELETE FROM clientes WHERE id_cliente = ?"
+	result, err := tx.Exec(query, id)
+	if err != nil {
+		tx.Rollback()
 		return fmt.Errorf("error al eliminar el cliente: %v", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("error al confirmar la transacción: %v", err)
 	}
 
 	rowsAffected, _ := result.RowsAffected()
