@@ -134,7 +134,7 @@ func (mysql *MySQL) DeleteCliente(id int32) error {
 		query := "DELETE FROM " + tabla + " WHERE id_cliente = ?"
 		if _, err := tx.Exec(query, id); err != nil {
 			tx.Rollback()
-			return fmt.Errorf("error al eliminar dependencias de %s: %v", tabla, err)
+			return fmt.Errorf("error al eliminar dependencias de %s: %w", tabla, err)
 		}
 	}
 
@@ -142,11 +142,11 @@ func (mysql *MySQL) DeleteCliente(id int32) error {
 	result, err := tx.Exec(query, id)
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("error al eliminar el cliente: %v", err)
+		return fmt.Errorf("error al eliminar el cliente: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("error al confirmar la transacción: %v", err)
+		return fmt.Errorf("error al confirmar la transacción: %w", err)
 	}
 
 	rowsAffected, _ := result.RowsAffected()

@@ -1,9 +1,9 @@
 package infraestructure
 
 import (
-	"fmt"
 	"net/http"
 	"quinielas/src/quinielas/application"
+	"quinielas/src/shared/apierror"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +27,7 @@ func (dq *DeleteQuinielaController) Execute(c *gin.Context) {
 
 	err = dq.useCase.Execute(int32(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error al eliminar la quiniela: %v", err)})
+		apierror.Eliminar(c, err, "la quiniela")
 		return
 	}
 

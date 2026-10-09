@@ -1,9 +1,9 @@
 package infraestructure
 
 import (
-	"fmt"
 	"net/http"
 	"quinielas/src/ediciones/application"
+	"quinielas/src/shared/apierror"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +27,7 @@ func (dc *DeleteEdicionController) Execute(c *gin.Context) {
 
 	err = dc.useCase.Execute(int32(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error al eliminar la edición: %v", err)})
+		apierror.Eliminar(c, err, "la edición")
 		return
 	}
 

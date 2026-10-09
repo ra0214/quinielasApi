@@ -3,6 +3,7 @@ package infraestructure
 import (
 	"net/http"
 	"quinielas/src/aportes/application"
+	"quinielas/src/shared/apierror"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +27,7 @@ func (da *DeleteAporteController) Execute(c *gin.Context) {
 
 	err = da.useCase.Execute(int32(idAporte))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apierror.Eliminar(c, err, "el aporte")
 		return
 	}
 

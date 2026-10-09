@@ -3,6 +3,7 @@ package infraestructure
 import (
 	"net/http"
 	"quinielas/src/movimientos/application"
+	"quinielas/src/shared/apierror"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +27,7 @@ func (dm *DeleteMovimientoController) Execute(c *gin.Context) {
 
 	err = dm.useCase.Execute(int32(idMovimiento))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apierror.Eliminar(c, err, "el movimiento")
 		return
 	}
 

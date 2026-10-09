@@ -1,9 +1,9 @@
 package infraestructure
 
 import (
-	"fmt"
 	"net/http"
 	"quinielas/src/clientes/application"
+	"quinielas/src/shared/apierror"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +27,7 @@ func (dc_c *DeleteClienteController) Execute(c *gin.Context) {
 
 	err = dc_c.useCase.Execute(int32(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error al eliminar el cliente: %v", err)})
+		apierror.Eliminar(c, err, "el cliente")
 		return
 	}
 

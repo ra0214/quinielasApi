@@ -64,13 +64,13 @@ func GetDBConnection() (*sql.DB, error) {
 func (conn *Conn_MySQL) ExecutePreparedQuery(query string, values ...interface{}) (sql.Result, error) {
 	stmt, err := conn.DB.Prepare(query)
 	if err != nil {
-		return nil, fmt.Errorf("error al preparar la consulta: %v", err)
+		return nil, fmt.Errorf("error al preparar la consulta: %w", err)
 	}
 	defer stmt.Close()
 
 	result, err := stmt.Exec(values...)
 	if err != nil {
-		return nil, fmt.Errorf("error al ejecutar la consulta preparada: %v", err)
+		return nil, fmt.Errorf("error al ejecutar la consulta preparada: %w", err)
 	}
 
 	return result, nil
@@ -79,7 +79,7 @@ func (conn *Conn_MySQL) ExecutePreparedQuery(query string, values ...interface{}
 func (conn *Conn_MySQL) FetchRows(query string, values ...interface{}) (*sql.Rows, error) {
 	rows, err := conn.DB.Query(query, values...)
 	if err != nil {
-		return nil, fmt.Errorf("error al ejecutar la consulta SELECT: %v", err)
+		return nil, fmt.Errorf("error al ejecutar la consulta SELECT: %w", err)
 	}
 
 	return rows, nil

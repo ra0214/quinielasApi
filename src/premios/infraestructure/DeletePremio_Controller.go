@@ -3,6 +3,7 @@ package infraestructure
 import (
 	"net/http"
 	"quinielas/src/premios/application"
+	"quinielas/src/shared/apierror"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +27,7 @@ func (dp *DeletePremioController) Execute(c *gin.Context) {
 
 	err = dp.useCase.Execute(int32(idPremio))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apierror.Eliminar(c, err, "el premio")
 		return
 	}
 
