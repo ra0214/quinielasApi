@@ -10,7 +10,7 @@ import (
 func Init() {
 	deps := InitDependencies()
 	router := gin.Default()
-	SetupRouterClientes(router, deps.ClienteRepo)
+	SetupRouterClientes(router, deps.ClienteRepo, deps.SaldoRepo)
 
 	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)

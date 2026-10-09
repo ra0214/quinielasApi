@@ -1,9 +1,11 @@
 package infraestructure
 
 import (
+	"errors"
 	"net/http"
 	"quinielas/src/clientes/application"
 	"quinielas/src/shared/apierror"
+	saldosDomain "quinielas/src/saldos/domain"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +29,11 @@ func (dc_c *DeleteClienteController) Execute(c *gin.Context) {
 
 	err = dc_c.useCase.Execute(int32(id))
 	if err != nil {
+		var saldoErr *saldosDomain.SaldoPendienteError
+		if errors.As(err, &saldoErr) {
+			c.JSON(http.StatusConflict, gin.H{"error": "No se puede eliminar el cliente: " + saldoErr.Error()})
+			return
+		}
 		apierror.Eliminar(c, err, "el cliente")
 		return
 	}

@@ -31,7 +31,7 @@ func main() {
 	premioRepo := premiosInfra.NewMySQL()
 
 	// Registrar Rutas directamente en la misma instancia 'r'
-	clientesInfra.SetupRouterClientes(r, clienteRepo)
+	clientesInfra.SetupRouterClientes(r, clienteRepo, saldoRepo)
 	edicionesInfra.SetupRouterEdiciones(r, edicionRepo)
 	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo)
 	saldosInfra.SetupRouterSaldos(r, saldoRepo)

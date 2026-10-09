@@ -9,6 +9,24 @@ import (
 
 var ErrSaldoInsuficiente = errors.New("saldo insuficiente a favor para realizar el retiro u operación")
 
+// SaldoPendienteError indica que el cliente no puede borrarse porque tiene
+// saldo a favor o deuda pendiente.
+type SaldoPendienteError struct {
+	Favor money.Money
+	Deuda money.Money
+}
+
+func (e *SaldoPendienteError) Error() string {
+	switch {
+	case !e.Favor.IsZero() && !e.Deuda.IsZero():
+		return "tiene saldo a favor y deuda pendiente"
+	case !e.Deuda.IsZero():
+		return fmt.Sprintf("tiene una deuda de $%s", e.Deuda.String())
+	default:
+		return fmt.Sprintf("tiene saldo a favor de $%s", e.Favor.String())
+	}
+}
+
 type ISaldo interface {
 	GetSaldoByClienteID(idCliente int32) (*Saldo, error)
 	GetAllSaldos() ([]Saldo, error)
