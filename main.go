@@ -35,7 +35,7 @@ func main() {
 	edicionesInfra.SetupRouterEdiciones(r, edicionRepo)
 	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo)
 	saldosInfra.SetupRouterSaldos(r, saldoRepo)
-	aportesInfra.SetupRouterAportes(r, aporteRepo)
+	aportesInfra.SetupRouterAportes(r, aporteRepo, quinielaRepo)
 	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo, saldoRepo)
 	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo)
 

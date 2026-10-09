@@ -1,7 +1,14 @@
 package domain
 
 import (
+	"errors"
+
 	"quinielas/src/shared/money"
+)
+
+var (
+	ErrQuinielaNoEncontrada = errors.New("la quiniela no existe")
+	ErrMetaExcedida         = errors.New("el aporte excede el monto total solicitado de la quiniela")
 )
 
 type IAporte interface {

@@ -3,12 +3,13 @@ package infraestructure
 import (
 	"quinielas/src/aportes/application"
 	"quinielas/src/aportes/domain"
+	quinielasDomain "quinielas/src/quinielas/domain"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouterAportes(r *gin.Engine, repo domain.IAporte) {
-	createUseCase := application.NewCreateOrUpdateAporte(repo)
+func SetupRouterAportes(r *gin.Engine, repo domain.IAporte, quinielaRepo quinielasDomain.IQuiniela) {
+	createUseCase := application.NewCreateOrUpdateAporte(repo, quinielaRepo)
 	deleteUseCase := application.NewDeleteAporte(repo)
 	viewUseCase := application.NewViewAporte(repo)
 

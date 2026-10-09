@@ -1,8 +1,10 @@
 package infraestructure
 
 import (
+	"errors"
 	"net/http"
 	"quinielas/src/aportes/application"
+	"quinielas/src/aportes/domain"
 	"quinielas/src/shared/money"
 
 	"github.com/gin-gonic/gin"
@@ -17,10 +19,9 @@ func NewCreateAporteController(useCase *application.CreateOrUpdateAporte) *Creat
 }
 
 type CreateAporteRequestBody struct {
-	IDCliente         int32       `json:"id_cliente" binding:"required"`
-	IDQuiniela        int32       `json:"id_quiniela" binding:"required"`
-	Monto             money.Money `json:"monto"`
-	MontoMetaQuiniela money.Money `json:"monto_meta"`
+	IDCliente  int32       `json:"id_cliente" binding:"required"`
+	IDQuiniela int32       `json:"id_quiniela" binding:"required"`
+	Monto      money.Money `json:"monto"`
 }
 
 func (ca *CreateAporteController) Execute(c *gin.Context) {
@@ -35,14 +36,21 @@ func (ca *CreateAporteController) Execute(c *gin.Context) {
 		return
 	}
 
-	if body.MontoMetaQuiniela.IsNegative() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "monto_meta no puede ser negativo"})
+	if body.Monto.IsZero() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "el monto debe ser mayor a 0"})
 		return
 	}
 
-	aporte, err := ca.useCase.Execute(body.IDCliente, body.IDQuiniela, body.Monto, body.MontoMetaQuiniela)
+	aporte, err := ca.useCase.Execute(body.IDCliente, body.IDQuiniela, body.Monto)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, domain.ErrQuinielaNoEncontrada):
+			c.JSON(http.StatusNotFound, gin.H{"error": "La quiniela no existe"})
+		case errors.Is(err, domain.ErrMetaExcedida):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "No se puede exceder el monto total solicitado de la quiniela"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
