@@ -88,3 +88,90 @@ func (conn *Conn_MySQL) FetchRows(query string, values ...interface{}) (*sql.Row
 func (conn *Conn_MySQL) FetchRow(query string, values ...interface{}) *sql.Row {
 	return conn.DB.QueryRow(query, values...)
 }
+
+// AutoAlterQuinielas asegura que existan las columnas nuevas de la tabla
+// quinielas. MySQL 8 no soporta "ADD COLUMN IF NOT EXISTS", asi que se
+// comprueba information_schema antes de cada ALTER para que sea idempotente.
+func (conn *Conn_MySQL) AutoAlterQuinielas() error {
+	columnas := []struct {
+		nombre string
+		ddl    string
+	}{
+		{"tipo_quiniela", "ALTER TABLE quinielas ADD COLUMN tipo_quiniela VARCHAR(30) DEFAULT NULL"},
+		{"id_cliente", "ALTER TABLE quinielas ADD COLUMN id_cliente INT DEFAULT NULL"},
+		{"monto_pagado", "ALTER TABLE quinielas ADD COLUMN monto_pagado DECIMAL(12,2) NOT NULL DEFAULT '0.00'"},
+		{"cantidad_boletos", "ALTER TABLE quinielas ADD COLUMN cantidad_boletos INT NOT NULL DEFAULT '0'"},
+		{"analista", "ALTER TABLE quinielas ADD COLUMN analista VARCHAR(100) DEFAULT NULL"},
+		{"tipo_pago", "ALTER TABLE quinielas ADD COLUMN tipo_pago VARCHAR(30) DEFAULT NULL"},
+	}
+	for _, col := range columnas {
+		existe, err := conn.existeColumna("quinielas", col.nombre)
+		if err != nil {
+			return err
+		}
+		if !existe {
+			if _, err := conn.DB.Exec(col.ddl); err != nil {
+				return fmt.Errorf("error al agregar columna %s de quinielas: %w", col.nombre, err)
+			}
+		}
+	}
+
+	// Indice y llave foranea sobre id_cliente (tolerantes a que ya existan).
+	existeIdx, err := conn.existeIndice("quinielas", "idx_quinielas_id_cliente")
+	if err != nil {
+		return err
+	}
+	if !existeIdx {
+		if _, err := conn.DB.Exec("ALTER TABLE quinielas ADD INDEX idx_quinielas_id_cliente (id_cliente)"); err != nil {
+			return fmt.Errorf("error al crear indice idx_quinielas_id_cliente: %w", err)
+		}
+	}
+
+	existeFK, err := conn.existeFK("quinielas", "fk_quinielas_cliente")
+	if err != nil {
+		return err
+	}
+	if !existeFK {
+		if _, err := conn.DB.Exec("ALTER TABLE quinielas ADD CONSTRAINT fk_quinielas_cliente FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente)"); err != nil {
+			return fmt.Errorf("error al crear fk_quinielas_cliente: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (conn *Conn_MySQL) existeColumna(tabla, columna string) (bool, error) {
+	var n int
+	err := conn.DB.QueryRow(
+		"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+		tabla, columna,
+	).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("error al consultar information_schema.COLUMNS: %w", err)
+	}
+	return n > 0, nil
+}
+
+func (conn *Conn_MySQL) existeIndice(tabla, indice string) (bool, error) {
+	var n int
+	err := conn.DB.QueryRow(
+		"SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?",
+		tabla, indice,
+	).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("error al consultar information_schema.STATISTICS: %w", err)
+	}
+	return n > 0, nil
+}
+
+func (conn *Conn_MySQL) existeFK(tabla, nombre string) (bool, error) {
+	var n int
+	err := conn.DB.QueryRow(
+		"SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = 'FOREIGN KEY'",
+		tabla, nombre,
+	).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("error al consultar information_schema.TABLE_CONSTRAINTS: %w", err)
+	}
+	return n > 0, nil
+}

@@ -7,10 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouterQuinielas(r *gin.Engine, repo domain.IQuiniela) {
-	createUseCase := application.NewCreateQuiniela(repo)
-	deleteUseCase := application.NewDeleteQuiniela(repo)
-	updateUseCase := application.NewUpdateQuiniela(repo)
+func SetupRouterQuinielas(r *gin.Engine, repo domain.IQuiniela, cobro domain.CobroDirecta) {
+	createUseCase := application.NewCreateQuiniela(repo, cobro)
+	deleteUseCase := application.NewDeleteQuiniela(repo, cobro)
+	updateUseCase := application.NewUpdateQuiniela(repo, cobro)
 	viewUseCase := application.NewViewQuiniela(repo)
 
 	createController := NewCreateQuinielaController(createUseCase)

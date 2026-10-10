@@ -2,21 +2,20 @@ package application
 
 import (
 	"quinielas/src/quinielas/domain"
-	"quinielas/src/shared/money"
-	"time"
 )
 
 type CreateQuiniela struct {
-	repo domain.IQuiniela
+	repo  domain.IQuiniela
+	cobro domain.CobroDirecta
 }
 
-func NewCreateQuiniela(repo domain.IQuiniela) *CreateQuiniela {
-	return &CreateQuiniela{repo: repo}
+func NewCreateQuiniela(repo domain.IQuiniela, cobro domain.CobroDirecta) *CreateQuiniela {
+	return &CreateQuiniela{repo: repo, cobro: cobro}
 }
 
-func (cq *CreateQuiniela) Execute(idEdicion int32, nombreVariante string, precio money.Money, montoMeta money.Money, fechaLimite time.Time) (*domain.Quiniela, error) {
+func (cq *CreateQuiniela) Execute(q *domain.Quiniela) (*domain.Quiniela, error) {
 	// Validar que la edición no tenga ya 5 quinielas
-	count, err := cq.repo.CountByEdicionID(idEdicion)
+	count, err := cq.repo.CountByEdicionID(q.IDEdicion)
 	if err != nil {
 		return nil, err
 	}
@@ -25,5 +24,16 @@ func (cq *CreateQuiniela) Execute(idEdicion int32, nombreVariante string, precio
 		return nil, domain.ErrLimitQuinielasExceeded
 	}
 
-	return cq.repo.SaveQuiniela(idEdicion, nombreVariante, precio, montoMeta, fechaLimite)
+	saved, err := cq.repo.SaveQuiniela(q)
+	if err != nil {
+		return nil, err
+	}
+
+	if cq.cobro != nil && saved.IDCliente != nil {
+		if err := cq.cobro.SincronizarCobro(*saved.IDCliente, saved.ID, saved.TotalACobrar(), saved.MontoPagado); err != nil {
+			return nil, err
+		}
+	}
+
+	return saved, nil
 }

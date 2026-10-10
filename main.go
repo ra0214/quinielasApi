@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"quinielas/src/config"
 	"quinielas/src/config/middleware"
 
 	aportesInfra "quinielas/src/aportes/infraestructure"
@@ -23,6 +24,15 @@ func main() {
 
 	r.Use(middleware.NewCorsMiddleware())
 
+	// Auto-alter para columnas nuevas de quinielas
+	dbConn := config.GetDBPool()
+	if dbConn.Err != "" {
+		log.Fatalf("Error al configurar el pool de conexiones: %v", dbConn.Err)
+	}
+	if err := dbConn.AutoAlterQuinielas(); err != nil {
+		log.Printf("Advertencia al ejecutar auto-alter de quinielas: %v", err)
+	}
+
 	// Inicializar Repositorios
 	clienteRepo := clientesInfra.NewMySQL()
 	edicionRepo := edicionesInfra.NewMySQL()
@@ -32,21 +42,24 @@ func main() {
 	movimientoRepo := movimientosInfra.NewMySQL()
 	premioRepo := premiosInfra.NewMySQL()
 
+	// Ajuste de saldo y cobro de quinielas: registrar movimientos por el pago
+	// y el saldo fiado de cada quiniela para que el saldo del cliente cambie.
+	ajustadorSaldo := saldosApp.NewAjustarSaldo(saldoRepo)
+	createMovimiento := movimientosApp.NewCreateMovimiento(movimientoRepo, ajustadorSaldo)
+	deleteMovimiento := movimientosApp.NewDeleteMovimiento(movimientoRepo, ajustadorSaldo)
+	cobradorQuiniela := movimientosApp.NewCobradorQuiniela(movimientoRepo, createMovimiento, deleteMovimiento)
+
 	// Registrar Rutas directamente en la misma instancia 'r'
 	clientesInfra.SetupRouterClientes(r, clienteRepo, saldoRepo)
 	edicionesInfra.SetupRouterEdiciones(r, edicionRepo)
-	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo)
+	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo, cobradorQuiniela)
 	saldosInfra.SetupRouterSaldos(r, saldoRepo)
 	aportesInfra.SetupRouterAportes(r, aporteRepo, quinielaRepo)
 	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo, saldoRepo)
 
 	// Abonador de premios: registra cada parte del reparto como movimiento
 	// PREMIO_ABONO (ajusta el saldo) y puede deshacerse si el reparto falla.
-	ajustadorSaldo := saldosApp.NewAjustarSaldo(saldoRepo)
-	abonadorPremio := movimientosApp.NewAbonadorPremio(
-		movimientosApp.NewCreateMovimiento(movimientoRepo, ajustadorSaldo),
-		movimientosApp.NewDeleteMovimiento(movimientoRepo, ajustadorSaldo),
-	)
+	abonadorPremio := movimientosApp.NewAbonadorPremio(createMovimiento, deleteMovimiento)
 	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo, abonadorPremio)
 
 	// Obtener el puerto dinámico de Railway

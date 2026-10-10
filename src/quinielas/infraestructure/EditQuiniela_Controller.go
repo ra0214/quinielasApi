@@ -3,6 +3,7 @@ package infraestructure
 import (
 	"net/http"
 	"quinielas/src/quinielas/application"
+	"quinielas/src/quinielas/domain"
 	"quinielas/src/shared/money"
 	"strconv"
 	"time"
@@ -19,11 +20,17 @@ func NewEditQuinielaController(useCase *application.UpdateQuiniela) *EditQuiniel
 }
 
 type EditQuinielaRequestBody struct {
-	NombreVariante string      `json:"nombre_variante" binding:"required"`
-	Precio         money.Money `json:"precio"`
-	MontoMeta      money.Money `json:"monto_meta"`
-	FechaLimite    time.Time   `json:"fecha_limite" binding:"required"`
-	Estado         string      `json:"estado" binding:"required"`
+	NombreVariante  string      `json:"nombre_variante"`
+	Precio          money.Money `json:"precio"`
+	MontoMeta       money.Money `json:"monto_meta"`
+	FechaLimite     time.Time   `json:"fecha_limite"`
+	Estado          string      `json:"estado"`
+	TipoQuiniela    string      `json:"tipo_quiniela"`
+	IDCliente       *int32      `json:"id_cliente,omitempty"`
+	MontoPagado     money.Money `json:"monto_pagado"`
+	CantidadBoletos int32       `json:"cantidad_boletos"`
+	Analista        string      `json:"analista"`
+	TipoPago        string      `json:"tipo_pago"`
 }
 
 func (eq *EditQuinielaController) Execute(c *gin.Context) {
@@ -40,11 +47,6 @@ func (eq *EditQuinielaController) Execute(c *gin.Context) {
 		return
 	}
 
-	if body.Precio.IsZero() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "precio es obligatorio y debe ser mayor a 0"})
-		return
-	}
-
 	if body.Precio.IsNegative() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "precio no puede ser negativo"})
 		return
@@ -55,7 +57,24 @@ func (eq *EditQuinielaController) Execute(c *gin.Context) {
 		return
 	}
 
-	err = eq.useCase.Execute(int32(id), body.NombreVariante, body.Precio, body.MontoMeta, body.FechaLimite, body.Estado)
+	q := &domain.Quiniela{
+		ID:             int32(id),
+		NombreVariante: body.NombreVariante,
+		Precio:         body.Precio,
+		MontoMeta:      body.MontoMeta,
+		FechaLimite:    body.FechaLimite,
+		Estado:         body.Estado,
+		TipoQuiniela:   body.TipoQuiniela,
+		IDCliente:      body.IDCliente,
+		MontoPagado:    body.MontoPagado,
+		CantidadBoletos: body.CantidadBoletos,
+		Analista:       body.Analista,
+		TipoPago:       body.TipoPago,
+	}
+	if q.Estado == "" {
+		q.Estado = "EN_JUEGO"
+	}
+	err = eq.useCase.Execute(q)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar la quiniela", "detalles": err.Error()})
 		return

@@ -13,6 +13,7 @@ type IMovimiento interface {
 	DeleteMovimiento(idMovimiento int32) error
 	GetMovimientoByID(idMovimiento int32) (*Movimiento, error)
 	GetMovimientosByClienteID(idCliente int32) ([]Movimiento, error)
+	GetMovimientosByQuinielaID(idQuiniela int32) ([]Movimiento, error)
 	GetAllMovimientos() ([]Movimiento, error)
 }
 

@@ -19,22 +19,24 @@ func NewCreateQuinielaController(useCase *application.CreateQuiniela) *CreateQui
 }
 
 type CreateQuinielaRequestBody struct {
-	IDEdicion      int32       `json:"id_edicion" binding:"required"`
-	NombreVariante string      `json:"nombre_variante" binding:"required"`
-	Precio         money.Money `json:"precio"`
-	MontoMeta      money.Money `json:"monto_meta"`
-	FechaLimite    time.Time   `json:"fecha_limite" binding:"required"`
+	IDEdicion       int32       `json:"id_edicion" binding:"required"`
+	NombreVariante  string      `json:"nombre_variante"`
+	Precio          money.Money `json:"precio"`
+	MontoMeta       money.Money `json:"monto_meta"`
+	FechaLimite     time.Time   `json:"fecha_limite"`
+	Estado          string      `json:"estado"`
+	TipoQuiniela    string      `json:"tipo_quiniela"`
+	IDCliente       *int32      `json:"id_cliente,omitempty"`
+	MontoPagado     money.Money `json:"monto_pagado"`
+	CantidadBoletos int32       `json:"cantidad_boletos"`
+	Analista        string      `json:"analista"`
+	TipoPago        string      `json:"tipo_pago"`
 }
 
 func (cq *CreateQuinielaController) Execute(c *gin.Context) {
 	var body CreateQuinielaRequestBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Campos obligatorios faltantes o formato de fecha/número inválido"})
-		return
-	}
-
-	if body.Precio.IsZero() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "precio es obligatorio y debe ser mayor a 0"})
 		return
 	}
 
@@ -48,7 +50,24 @@ func (cq *CreateQuinielaController) Execute(c *gin.Context) {
 		return
 	}
 
-	quiniela, err := cq.useCase.Execute(body.IDEdicion, body.NombreVariante, body.Precio, body.MontoMeta, body.FechaLimite)
+	q := &domain.Quiniela{
+		IDEdicion:      body.IDEdicion,
+		NombreVariante: body.NombreVariante,
+		Precio:         body.Precio,
+		MontoMeta:      body.MontoMeta,
+		FechaLimite:    body.FechaLimite,
+		Estado:         body.Estado,
+		TipoQuiniela:   body.TipoQuiniela,
+		IDCliente:      body.IDCliente,
+		MontoPagado:    body.MontoPagado,
+		CantidadBoletos: body.CantidadBoletos,
+		Analista:       body.Analista,
+		TipoPago:       body.TipoPago,
+	}
+	if q.Estado == "" {
+		q.Estado = "EN_JUEGO"
+	}
+	quiniela, err := cq.useCase.Execute(q)
 	if err != nil {
 		if err == domain.ErrLimitQuinielasExceeded {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

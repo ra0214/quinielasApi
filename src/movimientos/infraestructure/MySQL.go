@@ -123,6 +123,31 @@ func (mysql *MySQL) GetMovimientosByClienteID(idCliente int32) ([]domain.Movimie
 	return lista, nil
 }
 
+func (mysql *MySQL) GetMovimientosByQuinielaID(idQuiniela int32) ([]domain.Movimiento, error) {
+	query := "SELECT id_movimiento, id_cliente, id_quiniela, tipo, monto, descripcion, fecha FROM movimientos WHERE id_quiniela = ? ORDER BY fecha DESC"
+	rows, err := mysql.conn.FetchRows(query, idQuiniela)
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener movimientos de la quiniela: %v", err)
+	}
+	defer rows.Close()
+
+	var lista []domain.Movimiento
+	for rows.Next() {
+		var m domain.Movimiento
+		var idQ sql.NullInt32
+		if err := rows.Scan(&m.IDMovimiento, &m.IDCliente, &idQ, &m.Tipo, &m.Monto, &m.Descripcion, &m.Fecha); err != nil {
+			return nil, fmt.Errorf("error al escanear fila de movimiento: %v", err)
+		}
+		if idQ.Valid {
+			val := idQ.Int32
+			m.IDQuiniela = &val
+		}
+		lista = append(lista, m)
+	}
+
+	return lista, nil
+}
+
 func (mysql *MySQL) GetAllMovimientos() ([]domain.Movimiento, error) {
 	query := "SELECT id_movimiento, id_cliente, id_quiniela, tipo, monto, descripcion, fecha FROM movimientos ORDER BY fecha DESC"
 	rows, err := mysql.conn.FetchRows(query)

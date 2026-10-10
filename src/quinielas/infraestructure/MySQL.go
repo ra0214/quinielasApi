@@ -1,12 +1,11 @@
 package infraestructure
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"quinielas/src/config"
 	"quinielas/src/quinielas/domain"
-	"quinielas/src/shared/money"
-	"time"
 )
 
 type MySQL struct {
@@ -23,9 +22,15 @@ func NewMySQL() domain.IQuiniela {
 	return &MySQL{conn: conn}
 }
 
-func (mysql *MySQL) SaveQuiniela(idEdicion int32, nombreVariante string, precio money.Money, montoMeta money.Money, fechaLimite time.Time) (*domain.Quiniela, error) {
-	query := "INSERT INTO quinielas (id_edicion, nombre_variante, precio, monto_meta, fecha_limite) VALUES (?, ?, ?, ?, ?)"
-	result, err := mysql.conn.ExecutePreparedQuery(query, idEdicion, nombreVariante, precio, montoMeta, fechaLimite)
+func (mysql *MySQL) SaveQuiniela(q *domain.Quiniela) (*domain.Quiniela, error) {
+	query := "INSERT INTO quinielas (id_edicion, nombre_variante, precio, monto_meta, fecha_limite, tipo_quiniela, id_cliente, monto_pagado, cantidad_boletos, analista, tipo_pago) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	var idCliente interface{}
+	if q.IDCliente != nil {
+		idCliente = *q.IDCliente
+	} else {
+		idCliente = nil
+	}
+	result, err := mysql.conn.ExecutePreparedQuery(query, q.IDEdicion, q.NombreVariante, q.Precio, q.MontoMeta, q.FechaLimite, q.TipoQuiniela, idCliente, q.MontoPagado, q.CantidadBoletos, q.Analista, q.TipoPago)
 	if err != nil {
 		return nil, fmt.Errorf("error al guardar quiniela: %v", err)
 	}
@@ -35,15 +40,14 @@ func (mysql *MySQL) SaveQuiniela(idEdicion int32, nombreVariante string, precio 
 		return nil, fmt.Errorf("error al obtener ID insertado: %v", err)
 	}
 
-	quiniela := domain.NewQuiniela(idEdicion, nombreVariante, precio, montoMeta, fechaLimite)
-	quiniela.ID = int32(id)
+	q.ID = int32(id)
 
-	log.Printf("[MySQL] - Quiniela creada correctamente: ID:%d Variante:%s", id, nombreVariante)
-	return quiniela, nil
+	log.Printf("[MySQL] - Quiniela creada correctamente: ID:%d Variante:%s", id, q.NombreVariante)
+	return q, nil
 }
 
 func (mysql *MySQL) GetAll() ([]domain.Quiniela, error) {
-	query := "SELECT id_quiniela, id_edicion, nombre_variante, precio, monto_meta, fecha_limite, estado FROM quinielas ORDER BY id_quiniela DESC"
+	query := "SELECT id_quiniela, id_edicion, nombre_variante, precio, monto_meta, fecha_limite, estado, tipo_quiniela, id_cliente, monto_pagado, cantidad_boletos, analista, tipo_pago FROM quinielas ORDER BY id_quiniela DESC"
 	rows, err := mysql.conn.FetchRows(query)
 	if err != nil {
 		return nil, fmt.Errorf("error al ejecutar la consulta SELECT: %v", err)
@@ -54,8 +58,13 @@ func (mysql *MySQL) GetAll() ([]domain.Quiniela, error) {
 
 	for rows.Next() {
 		var q domain.Quiniela
-		if err := rows.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado); err != nil {
+		var idC sql.NullInt32
+		if err := rows.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado, &q.TipoQuiniela, &idC, &q.MontoPagado, &q.CantidadBoletos, &q.Analista, &q.TipoPago); err != nil {
 			return nil, fmt.Errorf("error al escanear la fila: %v", err)
+		}
+		if idC.Valid {
+			v := idC.Int32
+			q.IDCliente = &v
 		}
 		quinielas = append(quinielas, q)
 	}
@@ -64,20 +73,25 @@ func (mysql *MySQL) GetAll() ([]domain.Quiniela, error) {
 }
 
 func (mysql *MySQL) GetQuinielaByID(id int32) (*domain.Quiniela, error) {
-	query := "SELECT id_quiniela, id_edicion, nombre_variante, precio, monto_meta, fecha_limite, estado FROM quinielas WHERE id_quiniela = ?"
+	query := "SELECT id_quiniela, id_edicion, nombre_variante, precio, monto_meta, fecha_limite, estado, tipo_quiniela, id_cliente, monto_pagado, cantidad_boletos, analista, tipo_pago FROM quinielas WHERE id_quiniela = ?"
 	row := mysql.conn.FetchRow(query, id)
 
 	var q domain.Quiniela
-	err := row.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado)
+	var idC sql.NullInt32
+	err := row.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado, &q.TipoQuiniela, &idC, &q.MontoPagado, &q.CantidadBoletos, &q.Analista, &q.TipoPago)
 	if err != nil {
 		return nil, fmt.Errorf("quiniela no encontrada: %v", err)
+	}
+	if idC.Valid {
+		v := idC.Int32
+		q.IDCliente = &v
 	}
 
 	return &q, nil
 }
 
 func (mysql *MySQL) GetByEdicionID(idEdicion int32) ([]domain.Quiniela, error) {
-	query := "SELECT id_quiniela, id_edicion, nombre_variante, precio, monto_meta, fecha_limite, estado FROM quinielas WHERE id_edicion = ?"
+	query := "SELECT id_quiniela, id_edicion, nombre_variante, precio, monto_meta, fecha_limite, estado, tipo_quiniela, id_cliente, monto_pagado, cantidad_boletos, analista, tipo_pago FROM quinielas WHERE id_edicion = ?"
 	rows, err := mysql.conn.FetchRows(query, idEdicion)
 	if err != nil {
 		return nil, fmt.Errorf("error al obtener quinielas de la edición: %v", err)
@@ -88,8 +102,13 @@ func (mysql *MySQL) GetByEdicionID(idEdicion int32) ([]domain.Quiniela, error) {
 
 	for rows.Next() {
 		var q domain.Quiniela
-		if err := rows.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado); err != nil {
+		var idC sql.NullInt32
+		if err := rows.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado, &q.TipoQuiniela, &idC, &q.MontoPagado, &q.CantidadBoletos, &q.Analista, &q.TipoPago); err != nil {
 			return nil, fmt.Errorf("error al escanear la fila: %v", err)
+		}
+		if idC.Valid {
+			v := idC.Int32
+			q.IDCliente = &v
 		}
 		quinielas = append(quinielas, q)
 	}
@@ -110,16 +129,22 @@ func (mysql *MySQL) CountByEdicionID(idEdicion int32) (int, error) {
 	return count, nil
 }
 
-func (mysql *MySQL) UpdateQuiniela(id int32, nombreVariante string, precio money.Money, montoMeta money.Money, fechaLimite time.Time, estado string) error {
-	query := "UPDATE quinielas SET nombre_variante = ?, precio = ?, monto_meta = ?, fecha_limite = ?, estado = ? WHERE id_quiniela = ?"
-	result, err := mysql.conn.ExecutePreparedQuery(query, nombreVariante, precio, montoMeta, fechaLimite, estado, id)
+func (mysql *MySQL) UpdateQuiniela(q *domain.Quiniela) error {
+	query := "UPDATE quinielas SET nombre_variante = ?, precio = ?, monto_meta = ?, fecha_limite = ?, estado = ?, tipo_quiniela = ?, id_cliente = ?, monto_pagado = ?, cantidad_boletos = ?, analista = ?, tipo_pago = ? WHERE id_quiniela = ?"
+	var idCliente interface{}
+	if q.IDCliente != nil {
+		idCliente = *q.IDCliente
+	} else {
+		idCliente = nil
+	}
+	result, err := mysql.conn.ExecutePreparedQuery(query, q.NombreVariante, q.Precio, q.MontoMeta, q.FechaLimite, q.Estado, q.TipoQuiniela, idCliente, q.MontoPagado, q.CantidadBoletos, q.Analista, q.TipoPago, q.ID)
 	if err != nil {
 		return fmt.Errorf("error al actualizar quiniela: %v", err)
 	}
 
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 1 {
-		log.Printf("[MySQL] - Quiniela actualizada correctamente: ID:%d", id)
+		log.Printf("[MySQL] - Quiniela actualizada correctamente: ID:%d", q.ID)
 	}
 	return nil
 }
