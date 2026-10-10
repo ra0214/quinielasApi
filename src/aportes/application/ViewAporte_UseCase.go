@@ -17,3 +17,7 @@ func (va *ViewAporte) ExecuteByQuiniela(idQuiniela int32) ([]domain.AporteDetall
 func (va *ViewAporte) ExecuteByCliente(idCliente int32) ([]domain.Aporte, error) {
 	return va.repo.GetAportesByClienteID(idCliente)
 }
+
+func (va *ViewAporte) ExecuteAll() ([]domain.AporteDetalle, error) {
+	return va.repo.GetAllAportes()
+}

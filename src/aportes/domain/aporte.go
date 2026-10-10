@@ -20,6 +20,7 @@ type IAporte interface {
 	GetAporteByID(idAporte int32) (*Aporte, error)
 	GetAportesByQuinielaID(idQuiniela int32) ([]AporteDetalle, error)
 	GetAportesByClienteID(idCliente int32) ([]Aporte, error)
+	GetAllAportes() ([]AporteDetalle, error)
 }
 
 type Aporte struct {

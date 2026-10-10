@@ -22,6 +22,7 @@ func SetupRouterAportes(r *gin.Engine, repo domain.IAporte, quinielaRepo quiniel
 	api := r.Group("/aportes")
 	{
 		api.POST("", createController.Execute)
+		api.GET("", viewController.GetAll)
 		api.PUT("/:id", updateController.Execute)
 		api.GET("/quiniela/:idQuiniela", viewController.GetByQuiniela)
 		api.GET("/cliente/:idCliente", viewController.GetByCliente)

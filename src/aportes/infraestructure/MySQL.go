@@ -151,3 +151,27 @@ func (mysql *MySQL) GetAportesByClienteID(idCliente int32) ([]domain.Aporte, err
 
 	return lista, nil
 }
+
+func (mysql *MySQL) GetAllAportes() ([]domain.AporteDetalle, error) {
+	query := `SELECT a.id_aporte, a.id_cliente, c.nombre, a.id_quiniela, a.monto_total_acumulado, a.porcentaje_participacion 
+	          FROM aportes a 
+	          JOIN clientes c ON a.id_cliente = c.id_cliente 
+	          ORDER BY a.id_cliente`
+
+	rows, err := mysql.conn.FetchRows(query)
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener aportes: %v", err)
+	}
+	defer rows.Close()
+
+	var lista []domain.AporteDetalle
+	for rows.Next() {
+		var ad domain.AporteDetalle
+		if err := rows.Scan(&ad.IDAporte, &ad.IDCliente, &ad.NombreCliente, &ad.IDQuiniela, &ad.MontoTotalAcumulado, &ad.PorcentajeParticipacion); err != nil {
+			return nil, fmt.Errorf("error al escanear fila de aporte: %v", err)
+		}
+		lista = append(lista, ad)
+	}
+
+	return lista, nil
+}

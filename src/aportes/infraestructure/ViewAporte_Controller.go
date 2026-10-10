@@ -49,3 +49,13 @@ func (va *ViewAporteController) GetByCliente(c *gin.Context) {
 
 	c.JSON(http.StatusOK, aportes)
 }
+
+func (va *ViewAporteController) GetAll(c *gin.Context) {
+	aportes, err := va.useCase.ExecuteAll()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, aportes)
+}
