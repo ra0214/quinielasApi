@@ -2,6 +2,7 @@ package infraestructure
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"quinielas/src/premios/application"
@@ -17,15 +18,23 @@ type fakePremioRepo struct {
 	guardado *domain.Premio
 
 	// Estado que usan las pruebas de reparto.
-	premio      *domain.Premio
-	reparto     *domain.RepartoPremio
-	guardados   int
-	yaRepartido bool
+	premio              *domain.Premio
+	reparto             *domain.RepartoPremio
+	guardados           int
+	yaRepartido         bool
+	fallaGuardarReparto bool
 }
 
 func (f *fakePremioRepo) SavePremio(idQuiniela int32, montoBruto money.Money) (*domain.Premio, error) {
 	p := domain.NewPremio(idQuiniela, montoBruto)
 	p.IDPremio = 1
+	f.guardado = p
+	return p, nil
+}
+
+func (f *fakePremioRepo) UpdatePremio(idPremio int32, montoBruto money.Money) (*domain.Premio, error) {
+	p := domain.NewPremio(0, montoBruto)
+	p.IDPremio = idPremio
 	f.guardado = p
 	return p, nil
 }
@@ -39,6 +48,9 @@ func (f *fakePremioRepo) GetPremioByQuinielaID(idQuiniela int32) (*domain.Premio
 func (f *fakePremioRepo) GetAllPremios() ([]domain.Premio, error) { return nil, nil }
 
 func (f *fakePremioRepo) SaveReparto(reparto *domain.RepartoPremio) error {
+	if f.fallaGuardarReparto {
+		return errors.New("fallo al guardar el reparto")
+	}
 	f.reparto = reparto
 	f.guardados++
 	return nil

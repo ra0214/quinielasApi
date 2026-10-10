@@ -3,10 +3,12 @@ package application
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	aportesDomain "quinielas/src/aportes/domain"
 	"quinielas/src/premios/domain"
 	quinielasDomain "quinielas/src/quinielas/domain"
+	"quinielas/src/shared/money"
 )
 
 // AportesDeQuiniela es todo lo que el reparto necesita saber de los aportes.
@@ -20,17 +22,27 @@ type MetaDeQuiniela interface {
 	GetQuinielaByID(id int32) (*quinielasDomain.Quiniela, error)
 }
 
+// AbonosDePremio abona a cada ganador el monto neto que le tocó. Se registra
+// como un movimiento PREMIO_ABONO para que el saldo del cliente suba.
+// DeshacerAbono elimina el movimiento y revierte el saldo (rollback).
+type AbonosDePremio interface {
+	Abonar(idCliente int32, idQuiniela int32, monto money.Money) (int32, error)
+	DeshacerAbono(idMovimiento int32) error
+}
+
 type CalcularRepartoPremio struct {
 	premioRepo   domain.IPremio
 	aporteRepo   AportesDeQuiniela
 	quinielaRepo MetaDeQuiniela
+	abonos       AbonosDePremio
 }
 
-func NewCalcularRepartoPremio(premioRepo domain.IPremio, aporteRepo AportesDeQuiniela, quinielaRepo MetaDeQuiniela) *CalcularRepartoPremio {
+func NewCalcularRepartoPremio(premioRepo domain.IPremio, aporteRepo AportesDeQuiniela, quinielaRepo MetaDeQuiniela, abonos AbonosDePremio) *CalcularRepartoPremio {
 	return &CalcularRepartoPremio{
 		premioRepo:   premioRepo,
 		aporteRepo:   aporteRepo,
 		quinielaRepo: quinielaRepo,
+		abonos:       abonos,
 	}
 }
 
@@ -84,9 +96,33 @@ func (c *CalcularRepartoPremio) Execute(idQuiniela int32) (*domain.RepartoPremio
 		return nil, err
 	}
 
+	// Los abonos se escriben antes del snapshot del reparto para que, si algo
+	// falla a mitad, se puedan deshacer y el usuario reintente. Solo después de
+	// que todos los ganadores tengan su abono se congela el reparto.
+	abonosCreados := make([]int32, 0, len(reparto.Participantes))
+	for _, p := range reparto.Participantes {
+		id, err := c.abonos.Abonar(p.IDCliente, reparto.IDQuiniela, p.MontoNetoAsignado)
+		if err != nil {
+			_ = c.deshacerAbonos(abonosCreados)
+			return nil, fmt.Errorf("no se pudo abonar el premio a %s: %w", p.NombreCliente, err)
+		}
+		abonosCreados = append(abonosCreados, id)
+	}
+
 	if err := c.premioRepo.SaveReparto(reparto); err != nil {
+		_ = c.deshacerAbonos(abonosCreados)
 		return nil, err
 	}
 
 	return reparto, nil
+}
+
+func (c *CalcularRepartoPremio) deshacerAbonos(ids []int32) error {
+	var primerError error
+	for _, id := range ids {
+		if err := c.abonos.DeshacerAbono(id); err != nil && primerError == nil {
+			primerError = err
+		}
+	}
+	return primerError
 }

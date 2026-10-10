@@ -68,6 +68,23 @@ func (mysql *MySQL) SaveOrUpdateAporte(idCliente int32, idQuiniela int32, montoS
 	return aporte, nil
 }
 
+func (mysql *MySQL) UpdateAporte(idAporte int32, montoNuevo money.Money, montoMetaQuiniela money.Money) (*domain.Aporte, error) {
+	aporte, err := mysql.GetAporteByID(idAporte)
+	if err != nil {
+		return nil, err
+	}
+
+	porcentaje := money.PercentOf(montoNuevo, montoMetaQuiniela)
+	query := "UPDATE aportes SET monto_total_acumulado = ?, porcentaje_participacion = ? WHERE id_aporte = ?"
+	if _, err := mysql.conn.ExecutePreparedQuery(query, montoNuevo, porcentaje, idAporte); err != nil {
+		return nil, fmt.Errorf("error al actualizar aporte: %v", err)
+	}
+
+	resultado := domain.NewAporte(aporte.IDCliente, aporte.IDQuiniela, montoNuevo, porcentaje)
+	resultado.IDAporte = idAporte
+	return resultado, nil
+}
+
 func (mysql *MySQL) DeleteAporte(idAporte int32) error {
 	query := "DELETE FROM aportes WHERE id_aporte = ?"
 	_, err := mysql.conn.ExecutePreparedQuery(query, idAporte)

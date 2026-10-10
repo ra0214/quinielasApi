@@ -10,9 +10,11 @@ import (
 	aportesInfra "quinielas/src/aportes/infraestructure"
 	clientesInfra "quinielas/src/clientes/infraestructure"
 	edicionesInfra "quinielas/src/ediciones/infraestructure"
+	movimientosApp "quinielas/src/movimientos/application"
 	movimientosInfra "quinielas/src/movimientos/infraestructure"
 	premiosInfra "quinielas/src/premios/infraestructure"
 	quinielasInfra "quinielas/src/quinielas/infraestructure"
+	saldosApp "quinielas/src/saldos/application"
 	saldosInfra "quinielas/src/saldos/infraestructure"
 )
 
@@ -37,7 +39,15 @@ func main() {
 	saldosInfra.SetupRouterSaldos(r, saldoRepo)
 	aportesInfra.SetupRouterAportes(r, aporteRepo, quinielaRepo)
 	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo, saldoRepo)
-	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo)
+
+	// Abonador de premios: registra cada parte del reparto como movimiento
+	// PREMIO_ABONO (ajusta el saldo) y puede deshacerse si el reparto falla.
+	ajustadorSaldo := saldosApp.NewAjustarSaldo(saldoRepo)
+	abonadorPremio := movimientosApp.NewAbonadorPremio(
+		movimientosApp.NewCreateMovimiento(movimientoRepo, ajustadorSaldo),
+		movimientosApp.NewDeleteMovimiento(movimientoRepo, ajustadorSaldo),
+	)
+	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo, abonadorPremio)
 
 	// Obtener el puerto dinámico de Railway
 	port := os.Getenv("PORT")

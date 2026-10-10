@@ -30,11 +30,36 @@ func (f *fakeQuinielaRepo) GetQuinielaByID(id int32) (*quinielasDomain.Quiniela,
 	return f.quiniela, nil
 }
 
-func montarRouter(p *fakePremioRepo, a *fakeAporteRepo, q *fakeQuinielaRepo) *gin.Engine {
+type abonoRegistro struct {
+	idCliente  int32
+	idQuiniela int32
+	monto      money.Money
+}
+
+type fakeAbonos struct {
+	abonos    []abonoRegistro
+	deshechos []int32
+}
+
+func (f *fakeAbonos) Abonar(idCliente int32, idQuiniela int32, monto money.Money) (int32, error) {
+	f.abonos = append(f.abonos, abonoRegistro{idCliente, idQuiniela, monto})
+	return int32(len(f.abonos)), nil
+}
+
+func (f *fakeAbonos) DeshacerAbono(idMovimiento int32) error {
+	f.deshechos = append(f.deshechos, idMovimiento)
+	return nil
+}
+
+func montarRouterConAbonos(p *fakePremioRepo, a *fakeAporteRepo, q *fakeQuinielaRepo, ab *fakeAbonos) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	SetupRouterPremios(r, p, a, q)
+	SetupRouterPremios(r, p, a, q, ab)
 	return r
+}
+
+func montarRouter(p *fakePremioRepo, a *fakeAporteRepo, q *fakeQuinielaRepo) *gin.Engine {
+	return montarRouterConAbonos(p, a, q, &fakeAbonos{})
 }
 
 func aporte(id int32, nombre string, monto string) aportesDomain.AporteDetalle {
@@ -210,5 +235,92 @@ func TestGenerarRepartoNoReparteDosVeces(t *testing.T) {
 	}
 	if repo.guardados != 0 {
 		t.Error("no se debe volver a guardar un reparto ya existente")
+	}
+}
+
+// TestGenerarRepartoAbonaSaldos verifica que cada ganador reciba un movimiento
+// de abono por su monto neto asignado.
+func TestGenerarRepartoAbonaSaldos(t *testing.T) {
+	premio := domain.NewPremio(1, money.NewFromInt64(1000))
+	premio.IDPremio = 7
+
+	repo := &fakePremioRepo{premio: premio}
+	aportes := &fakeAporteRepo{aportes: []aportesDomain.AporteDetalle{
+		aporte(1, "Ana", "5000.00"),
+		aporte(2, "Luis", "3000.00"),
+		aporte(3, "Sofia", "2000.00"),
+	}}
+	quiniela := &fakeQuinielaRepo{quiniela: &quinielasDomain.Quiniela{
+		ID:        1,
+		MontoMeta: money.MustParse("10000.00"),
+	}}
+	ab := &fakeAbonos{}
+
+	router := montarRouterConAbonos(repo, aportes, quiniela, ab)
+
+	req := httptest.NewRequest(http.MethodPost, "/premios/quiniela/1/reparto", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("codigo esperado 201, obtenido %d. Cuerpo: %s", rec.Code, rec.Body.String())
+	}
+	if len(ab.abonos) != 3 {
+		t.Fatalf("esperaba 3 abonos, hubo %d", len(ab.abonos))
+	}
+
+	esperados := []struct {
+		idCliente int32
+		monto     string
+	}{
+		{1, "465.00"},
+		{2, "279.00"},
+		{3, "186.00"},
+	}
+	for i, e := range esperados {
+		if ab.abonos[i].idCliente != e.idCliente {
+			t.Errorf("abono %d: cliente esperado %d, obtenido %d", i, e.idCliente, ab.abonos[i].idCliente)
+		}
+		if ab.abonos[i].monto.String() != e.monto {
+			t.Errorf("abono %d: monto esperado %s, obtenido %s", i, e.monto, ab.abonos[i].monto.String())
+		}
+		if ab.abonos[i].idQuiniela != 1 {
+			t.Errorf("abono %d: quiniela esperada 1, obtenida %d", i, ab.abonos[i].idQuiniela)
+		}
+	}
+}
+
+// TestGenerarRepartoDeshaceAbonosSiFallaElGuardado verifica el rollback: si el
+// snapshot del reparto no se puede guardar, los abonos ya creados se deshacen.
+func TestGenerarRepartoDeshaceAbonosSiFallaElGuardado(t *testing.T) {
+	premio := domain.NewPremio(1, money.NewFromInt64(1000))
+	premio.IDPremio = 7
+
+	repo := &fakePremioRepo{premio: premio, fallaGuardarReparto: true}
+	aportes := &fakeAporteRepo{aportes: []aportesDomain.AporteDetalle{
+		aporte(1, "Ana", "5000.00"),
+		aporte(2, "Luis", "3000.00"),
+		aporte(3, "Sofia", "2000.00"),
+	}}
+	quiniela := &fakeQuinielaRepo{quiniela: &quinielasDomain.Quiniela{
+		ID:        1,
+		MontoMeta: money.MustParse("10000.00"),
+	}}
+	ab := &fakeAbonos{}
+
+	router := montarRouterConAbonos(repo, aportes, quiniela, ab)
+
+	req := httptest.NewRequest(http.MethodPost, "/premios/quiniela/1/reparto", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("codigo esperado 500, obtenido %d. Cuerpo: %s", rec.Code, rec.Body.String())
+	}
+	if len(ab.abonos) != 3 {
+		t.Fatalf("esperaba 3 abonos creados antes de fallar, hubo %d", len(ab.abonos))
+	}
+	if len(ab.deshechos) != 3 {
+		t.Errorf("esperaba deshacer los 3 abonos, se deshicieron %d", len(ab.deshechos))
 	}
 }

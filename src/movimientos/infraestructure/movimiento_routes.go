@@ -13,16 +13,19 @@ func SetupRouterMovimientos(r *gin.Engine, repo domain.IMovimiento, saldoRepo sa
 	ajustador := saldosApp.NewAjustarSaldo(saldoRepo)
 
 	createUseCase := application.NewCreateMovimiento(repo, ajustador)
+	updateUseCase := application.NewUpdateMovimiento(repo, ajustador)
 	deleteUseCase := application.NewDeleteMovimiento(repo, ajustador)
 	viewUseCase := application.NewViewMovimiento(repo)
 
 	createController := NewCreateMovimientoController(createUseCase)
+	updateController := NewUpdateMovimientoController(updateUseCase)
 	deleteController := NewDeleteMovimientoController(deleteUseCase)
 	viewController := NewViewMovimientoController(viewUseCase)
 
 	api := r.Group("/movimientos")
 	{
 		api.POST("", createController.Execute)
+		api.PUT("/:id", updateController.Execute)
 		api.GET("", viewController.GetAll)
 		api.GET("/cliente/:idCliente", viewController.GetByClienteID)
 		api.DELETE("/:id", deleteController.Execute)

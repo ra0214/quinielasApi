@@ -51,6 +51,24 @@ func (mysql *MySQL) SaveMovimiento(idCliente int32, idQuiniela *int32, tipo stri
 	return movimiento, nil
 }
 
+func (mysql *MySQL) UpdateMovimiento(m *domain.Movimiento) error {
+	query := "UPDATE movimientos SET id_cliente = ?, id_quiniela = ?, tipo = ?, monto = ?, descripcion = ? WHERE id_movimiento = ?"
+
+	var err error
+	if m.IDQuiniela != nil {
+		_, err = mysql.conn.ExecutePreparedQuery(query, m.IDCliente, *m.IDQuiniela, m.Tipo, m.Monto, m.Descripcion, m.IDMovimiento)
+	} else {
+		_, err = mysql.conn.ExecutePreparedQuery(query, m.IDCliente, nil, m.Tipo, m.Monto, m.Descripcion, m.IDMovimiento)
+	}
+
+	if err != nil {
+		return fmt.Errorf("error al actualizar movimiento: %v", err)
+	}
+
+	log.Printf("[MySQL] - Movimiento actualizado: ID:%d Tipo:%s Cliente:%d", m.IDMovimiento, m.Tipo, m.IDCliente)
+	return nil
+}
+
 func (mysql *MySQL) DeleteMovimiento(idMovimiento int32) error {
 	query := "DELETE FROM movimientos WHERE id_movimiento = ?"
 	_, err := mysql.conn.ExecutePreparedQuery(query, idMovimiento)

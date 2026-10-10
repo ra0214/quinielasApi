@@ -13,6 +13,9 @@ var (
 
 type IAporte interface {
 	SaveOrUpdateAporte(idCliente int32, idQuiniela int32, montoSumar money.Money, montoMetaQuiniela money.Money) (*Aporte, error)
+	// UpdateAporte reemplaza el monto acumulado de un aporte existente por un
+	// monto nuevo, recalcando el porcentaje de participación.
+	UpdateAporte(idAporte int32, montoNuevo money.Money, montoMetaQuiniela money.Money) (*Aporte, error)
 	DeleteAporte(idAporte int32) error
 	GetAporteByID(idAporte int32) (*Aporte, error)
 	GetAportesByQuinielaID(idQuiniela int32) ([]AporteDetalle, error)

@@ -52,6 +52,32 @@ func (mysql *MySQL) SavePremio(idQuiniela int32, montoBruto money.Money) (*domai
 	return nuevoPremio, nil
 }
 
+func (mysql *MySQL) UpdatePremio(idPremio int32, montoBruto money.Money) (*domain.Premio, error) {
+	premio := domain.NewPremio(0, montoBruto)
+	premio.IDPremio = idPremio
+
+	query := "UPDATE premios SET monto_bruto = ?, porcentaje_retencion = ?, monto_neto = ? WHERE id_premio = ?"
+	res, err := mysql.conn.ExecutePreparedQuery(
+		query,
+		premio.MontoBruto,
+		premio.PorcentajeRetencion,
+		premio.MontoNeto,
+		idPremio,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error al actualizar premio: %v", err)
+	}
+
+	// Si id_premio no existe el UPDATE no afecta filas: lo tratamos como no
+	// encontrado para que el cliente reciba un 404 claro.
+	if filas, err := res.RowsAffected(); err == nil && filas == 0 {
+		return nil, sql.ErrNoRows
+	}
+
+	log.Printf("[MySQL] - Premio actualizado: ID:%d Neto:%s", idPremio, premio.MontoNeto.String())
+	return premio, nil
+}
+
 func (mysql *MySQL) DeletePremio(idPremio int32) error {
 	query := "DELETE FROM premios WHERE id_premio = ?"
 	_, err := mysql.conn.ExecutePreparedQuery(query, idPremio)

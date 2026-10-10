@@ -7,6 +7,9 @@ import (
 
 type IMovimiento interface {
 	SaveMovimiento(idCliente int32, idQuiniela *int32, tipo string, monto money.Money, descripcion string) (*Movimiento, error)
+	// UpdateMovimiento reemplaza los datos editables de un movimiento ya
+	// registrado (cliente, quiniela, tipo, monto y descripción).
+	UpdateMovimiento(m *Movimiento) error
 	DeleteMovimiento(idMovimiento int32) error
 	GetMovimientoByID(idMovimiento int32) (*Movimiento, error)
 	GetMovimientosByClienteID(idCliente int32) ([]Movimiento, error)

@@ -7,6 +7,9 @@ import (
 
 type IPremio interface {
 	SavePremio(idQuiniela int32, montoBruto money.Money) (*Premio, error)
+	// UpdatePremio modifica el monto bruto de un premio ya registrado y
+	// recalcula la retención y el monto neto.
+	UpdatePremio(idPremio int32, montoBruto money.Money) (*Premio, error)
 	DeletePremio(idPremio int32) error
 	GetPremioByQuinielaID(idQuiniela int32) (*Premio, error)
 	GetAllPremios() ([]Premio, error)
