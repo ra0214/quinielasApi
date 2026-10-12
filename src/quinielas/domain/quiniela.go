@@ -10,8 +10,10 @@ var ErrLimitQuinielasExceeded = errors.New("límite alcanzado: no se pueden crea
 
 // CobroDirecta refleja el cobro de una quiniela en movimientos y saldo. Lo
 // implementa el módulo de movimientos; las quinielas solo lo consumen.
+// canalVenta identifica cómo se vendió la quiniela ('EN_LINEA' o 'VENTANILLA')
+// y se registra en la descripción de los movimientos.
 type CobroDirecta interface {
-	SincronizarCobro(idCliente int32, idQuiniela int32, total money.Money, pagado money.Money) error
+	SincronizarCobro(idCliente int32, idQuiniela int32, total money.Money, pagado money.Money, canalVenta string) error
 	RevertirCobro(idQuiniela int32) error
 }
 
@@ -39,6 +41,7 @@ type Quiniela struct {
 	CantidadBoletos   int32       `json:"cantidad_boletos,omitempty"`
 	Analista          string      `json:"analista,omitempty"`
 	TipoPago          string      `json:"tipo_pago,omitempty"` // CONTADO, PAGO_PARCIAL, A_CREDITO
+	CanalVenta        string      `json:"canal_venta,omitempty"` // EN_LINEA, VENTANILLA
 }
 
 func NewQuiniela(idEdicion int32, nombreVariante string, precio money.Money, montoMeta money.Money, fechaLimite time.Time) *Quiniela {

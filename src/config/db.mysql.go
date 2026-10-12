@@ -103,6 +103,7 @@ func (conn *Conn_MySQL) AutoAlterQuinielas() error {
 		{"cantidad_boletos", "ALTER TABLE quinielas ADD COLUMN cantidad_boletos INT NOT NULL DEFAULT '0'"},
 		{"analista", "ALTER TABLE quinielas ADD COLUMN analista VARCHAR(100) DEFAULT NULL"},
 		{"tipo_pago", "ALTER TABLE quinielas ADD COLUMN tipo_pago VARCHAR(30) DEFAULT NULL"},
+		{"canal_venta", "ALTER TABLE quinielas ADD COLUMN canal_venta VARCHAR(20) DEFAULT NULL"},
 	}
 	for _, col := range columnas {
 		existe, err := conn.existeColumna("quinielas", col.nombre)
@@ -134,6 +135,30 @@ func (conn *Conn_MySQL) AutoAlterQuinielas() error {
 	if !existeFK {
 		if _, err := conn.DB.Exec("ALTER TABLE quinielas ADD CONSTRAINT fk_quinielas_cliente FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente)"); err != nil {
 			return fmt.Errorf("error al crear fk_quinielas_cliente: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// AutoAlterPremios asegura la columna premio_por_boleto de la tabla premios
+// (premio por cada ganador en una quiniela en coperacha).
+func (conn *Conn_MySQL) AutoAlterPremios() error {
+	columnas := []struct {
+		nombre string
+		ddl    string
+	}{
+		{"premio_por_boleto", "ALTER TABLE premios ADD COLUMN premio_por_boleto DECIMAL(12,2) NOT NULL DEFAULT '0.00'"},
+	}
+	for _, col := range columnas {
+		existe, err := conn.existeColumna("premios", col.nombre)
+		if err != nil {
+			return err
+		}
+		if !existe {
+			if _, err := conn.DB.Exec(col.ddl); err != nil {
+				return fmt.Errorf("error al agregar columna %s de premios: %w", col.nombre, err)
+			}
 		}
 	}
 

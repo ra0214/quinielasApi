@@ -9,10 +9,11 @@ import (
 type CreateOrUpdateAporte struct {
 	repo         aportesDomain.IAporte
 	quinielaRepo quinielasDomain.IQuiniela
+	cobro        aportesDomain.CobroAporte
 }
 
-func NewCreateOrUpdateAporte(repo aportesDomain.IAporte, quinielaRepo quinielasDomain.IQuiniela) *CreateOrUpdateAporte {
-	return &CreateOrUpdateAporte{repo: repo, quinielaRepo: quinielaRepo}
+func NewCreateOrUpdateAporte(repo aportesDomain.IAporte, quinielaRepo quinielasDomain.IQuiniela, cobro aportesDomain.CobroAporte) *CreateOrUpdateAporte {
+	return &CreateOrUpdateAporte{repo: repo, quinielaRepo: quinielaRepo, cobro: cobro}
 }
 
 func (cua *CreateOrUpdateAporte) Execute(idCliente int32, idQuiniela int32, montoSumar money.Money) (*aportesDomain.Aporte, error) {
@@ -32,7 +33,20 @@ func (cua *CreateOrUpdateAporte) Execute(idCliente int32, idQuiniela int32, mont
 		return nil, aportesDomain.ErrMetaExcedida
 	}
 
-	return cua.repo.SaveOrUpdateAporte(idCliente, idQuiniela, montoSumar, quiniela.MontoMeta)
+	aporte, err := cua.repo.SaveOrUpdateAporte(idCliente, idQuiniela, montoSumar, quiniela.MontoMeta)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cada aporte se registra en movimientos (con su canal de venta) y ajusta
+	// el saldo del cliente.
+	if cua.cobro != nil {
+		if err := cua.cobro.SincronizarAporte(aporte.IDCliente, aporte.IDQuiniela, aporte.MontoTotalAcumulado, quiniela.CanalVenta); err != nil {
+			return nil, err
+		}
+	}
+
+	return aporte, nil
 }
 
 func (cua *CreateOrUpdateAporte) totalRecaudado(idQuiniela int32) (money.Money, error) {

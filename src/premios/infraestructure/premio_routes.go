@@ -7,12 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouterPremios(r *gin.Engine, repo domain.IPremio, aporteRepo application.AportesDeQuiniela, quinielaRepo application.MetaDeQuiniela, abonos application.AbonosDePremio) {
-	createUseCase := application.NewCreatePremio(repo)
-	updateUseCase := application.NewUpdatePremio(repo)
+func SetupRouterPremios(r *gin.Engine, repo domain.IPremio, aporteRepo application.AportesDeQuiniela, quinielaRepo application.MetaDeQuiniela, abonos application.AbonosDePremio, clientes application.NombreDeCliente) {
+	createUseCase := application.NewCreatePremio(repo, quinielaRepo)
+	updateUseCase := application.NewUpdatePremio(repo, quinielaRepo)
 	deleteUseCase := application.NewDeletePremio(repo)
 	viewUseCase := application.NewViewPremio(repo)
-	calcularRepartoUseCase := application.NewCalcularRepartoPremio(repo, aporteRepo, quinielaRepo, abonos)
+	calcularRepartoUseCase := application.NewCalcularRepartoPremio(repo, aporteRepo, quinielaRepo, abonos, clientes)
 	viewRepartoUseCase := application.NewViewRepartoPremio(repo)
 
 	createController := NewCreatePremioController(createUseCase)

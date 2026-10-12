@@ -23,8 +23,9 @@ func NewCobradorQuiniela(repo movimientos.IMovimiento, create *CreateMovimiento,
 
 // SincronizarCobro deja los movimientos de la quiniela acordes a total/pagado.
 // Es idempotente: primero revierte los movimientos existentes de esa quiniela
-// y luego aplica los nuevos.
-func (c *CobradorQuiniela) SincronizarCobro(idCliente int32, idQuiniela int32, total money.Money, pagado money.Money) error {
+// y luego aplica los nuevos. canalVenta ('EN_LINEA'/'VENTANILLA') se refleja en
+// la descripción para que quede registrado cómo se realizó la compra.
+func (c *CobradorQuiniela) SincronizarCobro(idCliente int32, idQuiniela int32, total money.Money, pagado money.Money, canalVenta string) error {
 	if err := c.RevertirCobro(idQuiniela); err != nil {
 		return err
 	}
@@ -40,23 +41,28 @@ func (c *CobradorQuiniela) SincronizarCobro(idCliente int32, idQuiniela int32, t
 		pagado = total
 	}
 
+	canal := "VENTANILLA"
+	if canalVenta != "" {
+		canal = canalVenta
+	}
+
 	if pagado.IsZero() {
-		_, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", total, fmt.Sprintf("Fiado por quiniela #%d", idQuiniela))
+		_, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", total, fmt.Sprintf("Fiado por compra %s quiniela #%d", canal, idQuiniela))
 		return err
 	}
 
 	if pagado.Cmp(total) == 0 {
-		_, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Pago quiniela #%d", idQuiniela))
+		_, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Compra %s quiniela #%d", canal, idQuiniela))
 		return err
 	}
 
 	// Pago parcial: pago efectivo + resto fiado.
-	if _, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Pago parcial quiniela #%d", idQuiniela)); err != nil {
+	if _, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Pago parcial %s quiniela #%d", canal, idQuiniela)); err != nil {
 		return err
 	}
 	faltante := total.Sub(pagado)
 	if faltante.GreaterThan(money.Zero()) {
-		if _, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", faltante, fmt.Sprintf("Saldo fiado quiniela #%d", idQuiniela)); err != nil {
+		if _, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", faltante, fmt.Sprintf("Saldo fiado %s quiniela #%d", canal, idQuiniela)); err != nil {
 			return err
 		}
 	}

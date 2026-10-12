@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	aportesDomain "quinielas/src/aportes/domain"
+	clientesDomain "quinielas/src/clientes/domain"
 	"quinielas/src/premios/domain"
 	quinielasDomain "quinielas/src/quinielas/domain"
 	"quinielas/src/shared/money"
@@ -28,6 +29,13 @@ func (f *fakeAporteRepo) GetAportesByQuinielaID(id int32) ([]aportesDomain.Aport
 
 func (f *fakeQuinielaRepo) GetQuinielaByID(id int32) (*quinielasDomain.Quiniela, error) {
 	return f.quiniela, nil
+}
+
+// fakeClientes resuelve el nombre del comprador en quinielas DIRECTA.
+type fakeClientes struct{}
+
+func (f *fakeClientes) GetClienteByID(id int32) (*clientesDomain.Cliente, error) {
+	return &clientesDomain.Cliente{ID: id, Nombre: "Cliente directo"}, nil
 }
 
 type abonoRegistro struct {
@@ -54,7 +62,7 @@ func (f *fakeAbonos) DeshacerAbono(idMovimiento int32) error {
 func montarRouterConAbonos(p *fakePremioRepo, a *fakeAporteRepo, q *fakeQuinielaRepo, ab *fakeAbonos) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	SetupRouterPremios(r, p, a, q, ab)
+	SetupRouterPremios(r, p, a, q, ab, &fakeClientes{})
 	return r
 }
 

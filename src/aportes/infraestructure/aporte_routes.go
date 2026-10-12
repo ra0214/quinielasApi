@@ -8,10 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouterAportes(r *gin.Engine, repo domain.IAporte, quinielaRepo quinielasDomain.IQuiniela) {
-	createUseCase := application.NewCreateOrUpdateAporte(repo, quinielaRepo)
-	updateUseCase := application.NewUpdateAporte(repo, quinielaRepo)
-	deleteUseCase := application.NewDeleteAporte(repo)
+func SetupRouterAportes(r *gin.Engine, repo domain.IAporte, quinielaRepo quinielasDomain.IQuiniela, cobro domain.CobroAporte) {
+	createUseCase := application.NewCreateOrUpdateAporte(repo, quinielaRepo, cobro)
+	updateUseCase := application.NewUpdateAporte(repo, quinielaRepo, cobro)
+	deleteUseCase := application.NewDeleteAporte(repo, cobro)
 	viewUseCase := application.NewViewAporte(repo)
 
 	createController := NewCreateAporteController(createUseCase)

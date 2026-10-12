@@ -32,6 +32,9 @@ func main() {
 	if err := dbConn.AutoAlterQuinielas(); err != nil {
 		log.Printf("Advertencia al ejecutar auto-alter de quinielas: %v", err)
 	}
+	if err := dbConn.AutoAlterPremios(); err != nil {
+		log.Printf("Advertencia al ejecutar auto-alter de premios: %v", err)
+	}
 
 	// Inicializar Repositorios
 	clienteRepo := clientesInfra.NewMySQL()
@@ -48,19 +51,20 @@ func main() {
 	createMovimiento := movimientosApp.NewCreateMovimiento(movimientoRepo, ajustadorSaldo)
 	deleteMovimiento := movimientosApp.NewDeleteMovimiento(movimientoRepo, ajustadorSaldo)
 	cobradorQuiniela := movimientosApp.NewCobradorQuiniela(movimientoRepo, createMovimiento, deleteMovimiento)
+	cobradorAporte := movimientosApp.NewCobradorAporte(movimientoRepo, createMovimiento, deleteMovimiento)
 
 	// Registrar Rutas directamente en la misma instancia 'r'
 	clientesInfra.SetupRouterClientes(r, clienteRepo, saldoRepo)
 	edicionesInfra.SetupRouterEdiciones(r, edicionRepo)
 	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo, cobradorQuiniela)
 	saldosInfra.SetupRouterSaldos(r, saldoRepo)
-	aportesInfra.SetupRouterAportes(r, aporteRepo, quinielaRepo)
+	aportesInfra.SetupRouterAportes(r, aporteRepo, quinielaRepo, cobradorAporte)
 	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo, saldoRepo)
 
 	// Abonador de premios: registra cada parte del reparto como movimiento
 	// PREMIO_ABONO (ajusta el saldo) y puede deshacerse si el reparto falla.
 	abonadorPremio := movimientosApp.NewAbonadorPremio(createMovimiento, deleteMovimiento)
-	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo, abonadorPremio)
+	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo, abonadorPremio, clienteRepo)
 
 	// Obtener el puerto dinámico de Railway
 	port := os.Getenv("PORT")

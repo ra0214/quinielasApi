@@ -11,10 +11,11 @@ import (
 type UpdateAporte struct {
 	repo         aportesDomain.IAporte
 	quinielaRepo quinielasDomain.IQuiniela
+	cobro        aportesDomain.CobroAporte
 }
 
-func NewUpdateAporte(repo aportesDomain.IAporte, quinielaRepo quinielasDomain.IQuiniela) *UpdateAporte {
-	return &UpdateAporte{repo: repo, quinielaRepo: quinielaRepo}
+func NewUpdateAporte(repo aportesDomain.IAporte, quinielaRepo quinielasDomain.IQuiniela, cobro aportesDomain.CobroAporte) *UpdateAporte {
+	return &UpdateAporte{repo: repo, quinielaRepo: quinielaRepo, cobro: cobro}
 }
 
 func (ua *UpdateAporte) Execute(idAporte int32, montoNuevo money.Money) (*aportesDomain.Aporte, error) {
@@ -40,7 +41,19 @@ func (ua *UpdateAporte) Execute(idAporte int32, montoNuevo money.Money) (*aporte
 		return nil, aportesDomain.ErrMetaExcedida
 	}
 
-	return ua.repo.UpdateAporte(idAporte, montoNuevo, quiniela.MontoMeta)
+	resultado, err := ua.repo.UpdateAporte(idAporte, montoNuevo, quiniela.MontoMeta)
+	if err != nil {
+		return nil, err
+	}
+
+	// El movimiento del aporte se ajusta al nuevo monto acumulado.
+	if ua.cobro != nil {
+		if err := ua.cobro.SincronizarAporte(resultado.IDCliente, resultado.IDQuiniela, resultado.MontoTotalAcumulado, quiniela.CanalVenta); err != nil {
+			return nil, err
+		}
+	}
+
+	return resultado, nil
 }
 
 func (ua *UpdateAporte) totalRecaudado(idQuiniela int32) (money.Money, error) {

@@ -23,7 +23,7 @@ func (uq *UpdateQuiniela) Execute(q *domain.Quiniela) error {
 			if err := uq.cobro.RevertirCobro(q.ID); err != nil {
 				return err
 			}
-		} else if err := uq.cobro.SincronizarCobro(*q.IDCliente, q.ID, q.TotalACobrar(), q.MontoPagado); err != nil {
+		} else if err := uq.cobro.SincronizarCobro(*q.IDCliente, q.ID, q.TotalACobrar(), q.MontoPagado, q.CanalVenta); err != nil {
 			return err
 		}
 	}

@@ -11,6 +11,14 @@ var (
 	ErrMetaExcedida         = errors.New("el aporte excede el monto total solicitado de la quiniela")
 )
 
+// CobroAporte refleja un aporte en movimientos y saldo. Lo implementa el
+// módulo de movimientos; los aportes solo lo consumen. Cada aporte queda
+// registrado como un movimiento PAGO_EFECTIVO con su canal de venta.
+type CobroAporte interface {
+	SincronizarAporte(idCliente int32, idQuiniela int32, monto money.Money, canalVenta string) error
+	RevertirAporte(idCliente int32, idQuiniela int32) error
+}
+
 type IAporte interface {
 	SaveOrUpdateAporte(idCliente int32, idQuiniela int32, montoSumar money.Money, montoMetaQuiniela money.Money) (*Aporte, error)
 	// UpdateAporte reemplaza el monto acumulado de un aporte existente por un

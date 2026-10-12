@@ -30,7 +30,7 @@ func (cq *CreateQuiniela) Execute(q *domain.Quiniela) (*domain.Quiniela, error) 
 	}
 
 	if cq.cobro != nil && saved.IDCliente != nil {
-		if err := cq.cobro.SincronizarCobro(*saved.IDCliente, saved.ID, saved.TotalACobrar(), saved.MontoPagado); err != nil {
+		if err := cq.cobro.SincronizarCobro(*saved.IDCliente, saved.ID, saved.TotalACobrar(), saved.MontoPagado, saved.CanalVenta); err != nil {
 			return nil, err
 		}
 	}

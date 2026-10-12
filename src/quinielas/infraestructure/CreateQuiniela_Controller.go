@@ -31,6 +31,11 @@ type CreateQuinielaRequestBody struct {
 	CantidadBoletos int32       `json:"cantidad_boletos"`
 	Analista        string      `json:"analista"`
 	TipoPago        string      `json:"tipo_pago"`
+	CanalVenta      string      `json:"canal_venta"`
+}
+
+func validarCanalVenta(canal string) bool {
+	return canal == "" || canal == "EN_LINEA" || canal == "VENTANILLA"
 }
 
 func (cq *CreateQuinielaController) Execute(c *gin.Context) {
@@ -50,6 +55,11 @@ func (cq *CreateQuinielaController) Execute(c *gin.Context) {
 		return
 	}
 
+	if !validarCanalVenta(body.CanalVenta) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "canal_venta debe ser EN_LINEA o VENTANILLA"})
+		return
+	}
+
 	q := &domain.Quiniela{
 		IDEdicion:      body.IDEdicion,
 		NombreVariante: body.NombreVariante,
@@ -63,6 +73,7 @@ func (cq *CreateQuinielaController) Execute(c *gin.Context) {
 		CantidadBoletos: body.CantidadBoletos,
 		Analista:       body.Analista,
 		TipoPago:       body.TipoPago,
+		CanalVenta:     body.CanalVenta,
 	}
 	if q.Estado == "" {
 		q.Estado = "EN_JUEGO"

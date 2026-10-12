@@ -14,7 +14,16 @@ var (
 	ErrMetaInvalida       = errors.New("la quiniela no tiene una meta valida, no se puede repartir")
 	ErrMetaNoAlcanzada    = errors.New("la meta de la quiniela no fue alcanzada, el premio no se reparte")
 	ErrRepartoYaGenerado  = errors.New("esta quiniela ya tiene un reparto generado")
+	ErrDirectaSinCliente  = errors.New("la quiniela directa no tiene un cliente asignado, no se puede abonar el premio")
+	ErrPremioSinMontoPorBoleto = errors.New("falta el premio por boleto para repartir la quiniela en coperacha")
 )
+
+// RepartoCliente describe al cliente que recibe el premio completo en una
+// quiniela DIRECTA.
+type RepartoCliente struct {
+	IDCliente     int32
+	NombreCliente string
+}
 
 // precisionReparto es la escala con la que se calcula la porcion exacta de cada
 // participante antes de truncar a centavos. Ocho decimales dejan margen de sobra
@@ -53,6 +62,100 @@ type RepartoPremio struct {
 	TotalParticipantes      int                   `json:"total_participantes"`
 	Participantes           []ParticipanteReparto `json:"participantes"`
 	FechaReparto            time.Time             `json:"fecha_reparto"`
+}
+
+// CalcularRepartoDirecta reparte el premio de una quiniela DIRECTA: el 100%
+// (ya con su retención aplicada) se abona al único cliente comprador.
+func CalcularRepartoDirecta(premio *Premio, cliente RepartoCliente, montoMeta money.Money) (*RepartoPremio, error) {
+	if premio == nil {
+		return nil, ErrPremioNoRegistrado
+	}
+	if !montoMeta.GreaterThan(money.Zero()) {
+		return nil, ErrMetaInvalida
+	}
+
+	participante := ParticipanteReparto{
+		IDCliente:            cliente.IDCliente,
+		NombreCliente:        cliente.NombreCliente,
+		MontoAporte:          montoMeta,
+		PorcentajeAporte:     money.PercentOf(montoMeta, montoMeta),
+		PorcentajeMeta:       money.PercentOf(montoMeta, montoMeta),
+		PorcentajeRecompensa: money.PercentOf(premio.MontoNeto, premio.MontoNeto),
+		MontoBrutoAsignado:   premio.MontoBruto,
+		MontoRetencion:       premio.MontoBruto.Sub(premio.MontoNeto),
+		MontoNetoAsignado:    premio.MontoNeto,
+	}
+
+	return &RepartoPremio{
+		IDPremio:                premio.IDPremio,
+		IDQuiniela:              premio.IDQuiniela,
+		MontoBruto:              premio.MontoBruto,
+		PorcentajeRetencion:     premio.PorcentajeRetencion,
+		MontoNeto:               premio.MontoNeto,
+		TotalRecaudado:          montoMeta,
+		MontoMeta:               montoMeta,
+		PorcentajeMetaAlcanzado: money.PercentOf(montoMeta, montoMeta),
+		TotalParticipantes:      1,
+		Participantes:           []ParticipanteReparto{participante},
+		FechaReparto:            time.Now(),
+	}, nil
+}
+
+// CalcularRepartoFijo reparte el premio de una quiniela DIRECTA_EN_COPERACHA:
+// cada participante recibe exactamente el premio por boleto registrado, el
+// mismo para todos (sin retención), sin importar el monto de su aporte.
+func CalcularRepartoFijo(premio *Premio, participantes []AporteParticipante) (*RepartoPremio, error) {
+	if premio == nil {
+		return nil, ErrPremioNoRegistrado
+	}
+	if len(participantes) == 0 {
+		return nil, ErrSinAportes
+	}
+	if premio.PremioPorBoleto.IsZero() {
+		return nil, ErrPremioSinMontoPorBoleto
+	}
+
+	totalRecaudado := money.Zero()
+	for _, a := range participantes {
+		totalRecaudado = totalRecaudado.Add(a.Monto)
+	}
+	if !totalRecaudado.GreaterThan(money.Zero()) {
+		return nil, ErrAportesSinMonto
+	}
+
+	totalPremio := premio.PremioPorBoleto.MulInt(int64(len(participantes)))
+	repartido := make([]ParticipanteReparto, 0, len(participantes))
+	for _, a := range participantes {
+		repartido = append(repartido, ParticipanteReparto{
+			IDCliente:            a.IDCliente,
+			NombreCliente:        a.NombreCliente,
+			MontoAporte:          a.Monto,
+			PorcentajeAporte:     money.PercentOf(a.Monto, totalRecaudado),
+			PorcentajeMeta:       money.PercentOf(a.Monto, premio.MontoBruto),
+			PorcentajeRecompensa: money.PercentOf(premio.PremioPorBoleto, totalPremio),
+			MontoBrutoAsignado:   premio.PremioPorBoleto,
+			MontoRetencion:       money.Zero(),
+			MontoNetoAsignado:    premio.PremioPorBoleto,
+		})
+	}
+
+	sort.SliceStable(repartido, func(i, j int) bool {
+		return repartido[i].MontoAporte.Cmp(repartido[j].MontoAporte) > 0
+	})
+
+	return &RepartoPremio{
+		IDPremio:                premio.IDPremio,
+		IDQuiniela:              premio.IDQuiniela,
+		MontoBruto:              totalPremio,
+		PorcentajeRetencion:     premio.PorcentajeRetencion,
+		MontoNeto:               totalPremio,
+		TotalRecaudado:          totalRecaudado,
+		MontoMeta:               premio.MontoBruto,
+		PorcentajeMetaAlcanzado: money.PercentOf(totalRecaudado, premio.MontoBruto),
+		TotalParticipantes:      len(repartido),
+		Participantes:           repartido,
+		FechaReparto:            time.Now(),
+	}, nil
 }
 
 // CalcularReparto reparte el premio de una quiniela entre quienes aportaron
