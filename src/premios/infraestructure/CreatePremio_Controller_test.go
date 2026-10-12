@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"quinielas/src/premios/application"
 	"quinielas/src/premios/domain"
-	quinielasDomain "quinielas/src/quinielas/domain"
 	"quinielas/src/shared/money"
 	"strings"
 	"testing"
@@ -26,35 +25,21 @@ type fakePremioRepo struct {
 	fallaGuardarReparto bool
 }
 
-func (f *fakePremioRepo) SavePremio(idQuiniela int32, montoBruto money.Money, premioPorBoleto money.Money) (*domain.Premio, error) {
-	var p *domain.Premio
-	if premioPorBoleto.GreaterThan(money.Zero()) {
-		p = domain.NewPremioCoperacha(idQuiniela, montoBruto, premioPorBoleto)
-	} else {
-		p = domain.NewPremio(idQuiniela, montoBruto)
-	}
+func (f *fakePremioRepo) SavePremio(idQuiniela int32, montoBruto money.Money) (*domain.Premio, error) {
+	p := domain.NewPremio(idQuiniela, montoBruto)
 	p.IDPremio = 1
 	f.guardado = p
 	return p, nil
 }
 
-func (f *fakePremioRepo) UpdatePremio(idPremio int32, montoBruto money.Money, premioPorBoleto money.Money) (*domain.Premio, error) {
-	var p *domain.Premio
-	if premioPorBoleto.GreaterThan(money.Zero()) {
-		p = domain.NewPremioCoperacha(0, montoBruto, premioPorBoleto)
-	} else {
-		p = domain.NewPremio(0, montoBruto)
-	}
+func (f *fakePremioRepo) UpdatePremio(idPremio int32, montoBruto money.Money) (*domain.Premio, error) {
+	p := domain.NewPremio(0, montoBruto)
 	p.IDPremio = idPremio
 	f.guardado = p
 	return p, nil
 }
 
 func (f *fakePremioRepo) DeletePremio(idPremio int32) error { return nil }
-
-func (f *fakePremioRepo) GetPremioByID(idPremio int32) (*domain.Premio, error) {
-	return f.premio, nil
-}
 
 func (f *fakePremioRepo) GetPremioByQuinielaID(idQuiniela int32) (*domain.Premio, error) {
 	return f.premio, nil
@@ -80,12 +65,7 @@ func (f *fakePremioRepo) ExistsReparto(idQuiniela int32) (bool, error) {
 }
 
 func newController(repo domain.IPremio) *CreatePremioController {
-	quiniela := &quinielasDomain.Quiniela{
-		ID:          1,
-		TipoQuiniela: "DIRECTA",
-		MontoMeta:   money.NewFromInt64(1000),
-	}
-	return NewCreatePremioController(application.NewCreatePremio(repo, &fakeQuinielaRepo{quiniela: quiniela}))
+	return NewCreatePremioController(application.NewCreatePremio(repo))
 }
 
 func TestPostPremioDevuelveMontoNetoExacto(t *testing.T) {

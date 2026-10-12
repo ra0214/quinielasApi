@@ -95,22 +95,6 @@ func (c *CalcularRepartoPremio) Execute(idQuiniela int32) (*domain.RepartoPremio
 		return nil, err
 	}
 
-	if quiniela.TipoQuiniela == "DIRECTA_EN_COPERACHA" {
-		participantes := make([]domain.AporteParticipante, 0, len(aportes))
-		for _, a := range aportes {
-			participantes = append(participantes, domain.AporteParticipante{
-				IDCliente:     a.IDCliente,
-				NombreCliente: a.NombreCliente,
-				Monto:         a.MontoTotalAcumulado,
-			})
-		}
-		reparto, err := domain.CalcularRepartoFijo(premio, participantes)
-		if err != nil {
-			return nil, err
-		}
-		return c.abonarYCongelar(reparto)
-	}
-
 	participantes := make([]domain.AporteParticipante, 0, len(aportes))
 	for _, a := range aportes {
 		participantes = append(participantes, domain.AporteParticipante{

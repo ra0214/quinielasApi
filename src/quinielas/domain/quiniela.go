@@ -35,10 +35,9 @@ type Quiniela struct {
 	MontoMeta         money.Money `json:"monto_meta"`
 	FechaLimite       time.Time   `json:"fecha_limite"`
 	Estado            string      `json:"estado"` // 'EN_JUEGO', 'COMPLETADA', 'CANCELADA'
-	TipoQuiniela      string      `json:"tipo_quiniela,omitempty"` // DIRECTA, DIRECTA_EN_COPERACHA, DESARROLLO
+	TipoQuiniela      string      `json:"tipo_quiniela,omitempty"` // DIRECTA, DESARROLLO
 	IDCliente         *int32      `json:"id_cliente,omitempty"`
 	MontoPagado       money.Money `json:"monto_pagado"`
-	CantidadBoletos   int32       `json:"cantidad_boletos,omitempty"`
 	Analista          string      `json:"analista,omitempty"`
 	TipoPago          string      `json:"tipo_pago,omitempty"` // CONTADO, PAGO_PARCIAL, A_CREDITO
 	CanalVenta        string      `json:"canal_venta,omitempty"` // EN_LINEA, VENTANILLA
@@ -55,18 +54,8 @@ func NewQuiniela(idEdicion int32, nombreVariante string, precio money.Money, mon
 	}
 }
 
+// TotalACobrar devuelve el monto total a cobrar al cliente: en DESARROLLO es el
+// costo total de la quiniela y en DIRECTA es el precio del boleto.
 func (q *Quiniela) TotalACobrar() money.Money {
-	switch q.TipoQuiniela {
-	case "DIRECTA_EN_COPERACHA":
-		if q.CantidadBoletos <= 0 {
-			return q.Precio
-		}
-		return q.Precio.MulInt(int64(q.CantidadBoletos))
-	case "DESARROLLO":
-		return q.Precio // precio = costo total
-	case "DIRECTA":
-		fallthrough
-	default:
-		return q.Precio
-	}
+	return q.Precio
 }

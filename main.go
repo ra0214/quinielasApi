@@ -32,9 +32,6 @@ func main() {
 	if err := dbConn.AutoAlterQuinielas(); err != nil {
 		log.Printf("Advertencia al ejecutar auto-alter de quinielas: %v", err)
 	}
-	if err := dbConn.AutoAlterPremios(); err != nil {
-		log.Printf("Advertencia al ejecutar auto-alter de premios: %v", err)
-	}
 
 	// Inicializar Repositorios
 	clienteRepo := clientesInfra.NewMySQL()

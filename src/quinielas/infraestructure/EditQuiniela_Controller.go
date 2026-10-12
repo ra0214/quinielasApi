@@ -28,7 +28,6 @@ type EditQuinielaRequestBody struct {
 	TipoQuiniela    string      `json:"tipo_quiniela"`
 	IDCliente       *int32      `json:"id_cliente,omitempty"`
 	MontoPagado     money.Money `json:"monto_pagado"`
-	CantidadBoletos int32       `json:"cantidad_boletos"`
 	Analista        string      `json:"analista"`
 	TipoPago        string      `json:"tipo_pago"`
 	CanalVenta      string      `json:"canal_venta"`
@@ -73,7 +72,6 @@ func (eq *EditQuinielaController) Execute(c *gin.Context) {
 		TipoQuiniela:   body.TipoQuiniela,
 		IDCliente:      body.IDCliente,
 		MontoPagado:    body.MontoPagado,
-		CantidadBoletos: body.CantidadBoletos,
 		Analista:       body.Analista,
 		TipoPago:       body.TipoPago,
 		CanalVenta:     body.CanalVenta,

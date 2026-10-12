@@ -8,8 +8,8 @@ import (
 )
 
 func SetupRouterPremios(r *gin.Engine, repo domain.IPremio, aporteRepo application.AportesDeQuiniela, quinielaRepo application.MetaDeQuiniela, abonos application.AbonosDePremio, clientes application.NombreDeCliente) {
-	createUseCase := application.NewCreatePremio(repo, quinielaRepo)
-	updateUseCase := application.NewUpdatePremio(repo, quinielaRepo)
+	createUseCase := application.NewCreatePremio(repo)
+	updateUseCase := application.NewUpdatePremio(repo)
 	deleteUseCase := application.NewDeletePremio(repo)
 	viewUseCase := application.NewViewPremio(repo)
 	calcularRepartoUseCase := application.NewCalcularRepartoPremio(repo, aporteRepo, quinielaRepo, abonos, clientes)
