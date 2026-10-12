@@ -46,6 +46,27 @@ func (mysql *MySQL) SaveQuiniela(q *domain.Quiniela) (*domain.Quiniela, error) {
 	return q, nil
 }
 
+// scanQuiniela lee una fila completa de `quinielas` tolerando NULL en las
+// columnas nuevas (filas existentes creadas antes de la migración).
+func scanQuiniela(scanner interface{ Scan(dest ...interface{}) error }) (*domain.Quiniela, error) {
+	var q domain.Quiniela
+	var idC sql.NullInt32
+	var tipoQ sql.NullString
+	var analista sql.NullString
+	var tipoPago sql.NullString
+	if err := scanner.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado, &tipoQ, &idC, &q.MontoPagado, &q.CantidadBoletos, &analista, &tipoPago); err != nil {
+		return nil, err
+	}
+	if idC.Valid {
+		v := idC.Int32
+		q.IDCliente = &v
+	}
+	q.TipoQuiniela = tipoQ.String
+	q.Analista = analista.String
+	q.TipoPago = tipoPago.String
+	return &q, nil
+}
+
 func (mysql *MySQL) GetAll() ([]domain.Quiniela, error) {
 	query := "SELECT id_quiniela, id_edicion, nombre_variante, precio, monto_meta, fecha_limite, estado, tipo_quiniela, id_cliente, monto_pagado, cantidad_boletos, analista, tipo_pago FROM quinielas ORDER BY id_quiniela DESC"
 	rows, err := mysql.conn.FetchRows(query)
@@ -57,16 +78,11 @@ func (mysql *MySQL) GetAll() ([]domain.Quiniela, error) {
 	var quinielas []domain.Quiniela
 
 	for rows.Next() {
-		var q domain.Quiniela
-		var idC sql.NullInt32
-		if err := rows.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado, &q.TipoQuiniela, &idC, &q.MontoPagado, &q.CantidadBoletos, &q.Analista, &q.TipoPago); err != nil {
+		q, err := scanQuiniela(rows)
+		if err != nil {
 			return nil, fmt.Errorf("error al escanear la fila: %v", err)
 		}
-		if idC.Valid {
-			v := idC.Int32
-			q.IDCliente = &v
-		}
-		quinielas = append(quinielas, q)
+		quinielas = append(quinielas, *q)
 	}
 
 	return quinielas, nil
@@ -76,18 +92,12 @@ func (mysql *MySQL) GetQuinielaByID(id int32) (*domain.Quiniela, error) {
 	query := "SELECT id_quiniela, id_edicion, nombre_variante, precio, monto_meta, fecha_limite, estado, tipo_quiniela, id_cliente, monto_pagado, cantidad_boletos, analista, tipo_pago FROM quinielas WHERE id_quiniela = ?"
 	row := mysql.conn.FetchRow(query, id)
 
-	var q domain.Quiniela
-	var idC sql.NullInt32
-	err := row.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado, &q.TipoQuiniela, &idC, &q.MontoPagado, &q.CantidadBoletos, &q.Analista, &q.TipoPago)
+	q, err := scanQuiniela(row)
 	if err != nil {
 		return nil, fmt.Errorf("quiniela no encontrada: %v", err)
 	}
-	if idC.Valid {
-		v := idC.Int32
-		q.IDCliente = &v
-	}
 
-	return &q, nil
+	return q, nil
 }
 
 func (mysql *MySQL) GetByEdicionID(idEdicion int32) ([]domain.Quiniela, error) {
@@ -101,16 +111,11 @@ func (mysql *MySQL) GetByEdicionID(idEdicion int32) ([]domain.Quiniela, error) {
 	var quinielas []domain.Quiniela
 
 	for rows.Next() {
-		var q domain.Quiniela
-		var idC sql.NullInt32
-		if err := rows.Scan(&q.ID, &q.IDEdicion, &q.NombreVariante, &q.Precio, &q.MontoMeta, &q.FechaLimite, &q.Estado, &q.TipoQuiniela, &idC, &q.MontoPagado, &q.CantidadBoletos, &q.Analista, &q.TipoPago); err != nil {
+		q, err := scanQuiniela(rows)
+		if err != nil {
 			return nil, fmt.Errorf("error al escanear la fila: %v", err)
 		}
-		if idC.Valid {
-			v := idC.Int32
-			q.IDCliente = &v
-		}
-		quinielas = append(quinielas, q)
+		quinielas = append(quinielas, *q)
 	}
 
 	return quinielas, nil
