@@ -12,10 +12,11 @@ var (
 )
 
 // CobroAporte refleja un aporte en movimientos y saldo. Lo implementa el
-// módulo de movimientos; los aportes solo lo consumen. Cada aporte queda
-// registrado como un movimiento PAGO_EFECTIVO con su canal de venta.
+// módulo de movimientos; los aportes solo lo consumen. La parte pagada del
+// aporte queda como PAGO_EFECTIVO y lo pendiente como FIADO, con su canal de
+// venta.
 type CobroAporte interface {
-	SincronizarAporte(idCliente int32, idQuiniela int32, monto money.Money, canalVenta string) error
+	SincronizarAporte(idCliente int32, idQuiniela int32, total money.Money, pagado money.Money, canalVenta string) error
 	RevertirAporte(idCliente int32, idQuiniela int32) error
 }
 

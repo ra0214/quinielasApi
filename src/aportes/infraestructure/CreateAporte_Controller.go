@@ -19,9 +19,10 @@ func NewCreateAporteController(useCase *application.CreateOrUpdateAporte) *Creat
 }
 
 type CreateAporteRequestBody struct {
-	IDCliente  int32       `json:"id_cliente" binding:"required"`
-	IDQuiniela int32       `json:"id_quiniela" binding:"required"`
-	Monto      money.Money `json:"monto"`
+	IDCliente   int32        `json:"id_cliente" binding:"required"`
+	IDQuiniela  int32        `json:"id_quiniela" binding:"required"`
+	Monto       money.Money  `json:"monto"`
+	MontoPagado *money.Money `json:"monto_pagado"`
 }
 
 func (ca *CreateAporteController) Execute(c *gin.Context) {
@@ -41,7 +42,23 @@ func (ca *CreateAporteController) Execute(c *gin.Context) {
 		return
 	}
 
-	aporte, err := ca.useCase.Execute(body.IDCliente, body.IDQuiniela, body.Monto)
+	// Si no se indica cuánto se pagó, se asume que el aporte se pagó completo.
+	montoPagado := body.Monto
+	if body.MontoPagado != nil {
+		montoPagado = *body.MontoPagado
+	}
+
+	if montoPagado.IsNegative() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "el monto pagado no puede ser negativo"})
+		return
+	}
+
+	if montoPagado.GreaterThan(body.Monto) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "el monto pagado no puede superar el monto del aporte"})
+		return
+	}
+
+	aporte, err := ca.useCase.Execute(body.IDCliente, body.IDQuiniela, body.Monto, montoPagado)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrQuinielaNoEncontrada):

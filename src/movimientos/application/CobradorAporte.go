@@ -24,17 +24,24 @@ func NewCobradorAporte(repo movimientos.IMovimiento, create *CreateMovimiento, d
 	return &CobradorAporte{repo: repo, create: create, delete: delete}
 }
 
-// SincronizarAporte deja el movimiento de aporte del cliente acorde al monto
-// total acumulado. Es idempotente: revierte el movimiento anterior (si existe)
-// y registra el nuevo. canalVenta ('EN_LINEA'/'VENTANILLA') queda en la
-// descripción para que el registro sea completo.
-func (c *CobradorAporte) SincronizarAporte(idCliente int32, idQuiniela int32, monto money.Money, canalVenta string) error {
+// SincronizarAporte deja los movimientos del aporte acordes al total y a lo
+// pagado: PAGO_EFECTIVO por la parte pagada y FIADO por el resto. Es
+// idempotente: revierte los movimientos anteriores (si existen) y registra los
+// nuevos. canalVenta ('EN_LINEA'/'VENTANILLA') queda en la descripción.
+func (c *CobradorAporte) SincronizarAporte(idCliente int32, idQuiniela int32, total money.Money, pagado money.Money, canalVenta string) error {
 	if err := c.RevertirAporte(idCliente, idQuiniela); err != nil {
 		return err
 	}
 
-	if monto.IsZero() {
+	if total.IsZero() {
 		return nil
+	}
+
+	if pagado.IsNegative() {
+		pagado = money.Zero()
+	}
+	if pagado.GreaterThan(total) {
+		pagado = total
 	}
 
 	canal := "VENTANILLA"
@@ -42,8 +49,19 @@ func (c *CobradorAporte) SincronizarAporte(idCliente int32, idQuiniela int32, mo
 		canal = canalVenta
 	}
 
-	_, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", monto, fmt.Sprintf("Aporte a quiniela #%d (%s)", idQuiniela, canal))
-	return err
+	if pagado.GreaterThan(money.Zero()) {
+		if _, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Aporte a quiniela #%d (%s)", idQuiniela, canal)); err != nil {
+			return err
+		}
+	}
+
+	faltante := total.Sub(pagado)
+	if faltante.GreaterThan(money.Zero()) {
+		if _, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", faltante, fmt.Sprintf("Aporte fiado quiniela #%d (%s)", idQuiniela, canal)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // RevertirAporte elimina (y revierte en el saldo) el movimiento de aporte del
@@ -64,5 +82,5 @@ func (c *CobradorAporte) RevertirAporte(idCliente int32, idQuiniela int32) error
 }
 
 func esAporte(m movimientos.Movimiento) bool {
-	return strings.HasPrefix(m.Descripcion, "Aporte a quiniela ")
+	return strings.HasPrefix(m.Descripcion, "Aporte ")
 }

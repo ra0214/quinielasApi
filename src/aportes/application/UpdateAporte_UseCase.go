@@ -46,9 +46,10 @@ func (ua *UpdateAporte) Execute(idAporte int32, montoNuevo money.Money) (*aporte
 		return nil, err
 	}
 
-	// El movimiento del aporte se ajusta al nuevo monto acumulado.
+	// El movimiento del aporte se ajusta al nuevo monto acumulado. Al editar el
+	// monto se asume el aporte pagado por completo.
 	if ua.cobro != nil {
-		if err := ua.cobro.SincronizarAporte(resultado.IDCliente, resultado.IDQuiniela, resultado.MontoTotalAcumulado, quiniela.CanalVenta); err != nil {
+		if err := ua.cobro.SincronizarAporte(resultado.IDCliente, resultado.IDQuiniela, resultado.MontoTotalAcumulado, resultado.MontoTotalAcumulado, quiniela.CanalVenta); err != nil {
 			return nil, err
 		}
 	}
