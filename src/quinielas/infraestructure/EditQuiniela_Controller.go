@@ -21,7 +21,6 @@ func NewEditQuinielaController(useCase *application.UpdateQuiniela) *EditQuiniel
 
 type EditQuinielaRequestBody struct {
 	NombreVariante  string      `json:"nombre_variante"`
-	Precio          money.Money `json:"precio"`
 	MontoMeta       money.Money `json:"monto_meta"`
 	FechaLimite     time.Time   `json:"fecha_limite"`
 	Estado          string      `json:"estado"`
@@ -47,11 +46,6 @@ func (eq *EditQuinielaController) Execute(c *gin.Context) {
 		return
 	}
 
-	if body.Precio.IsNegative() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "precio no puede ser negativo"})
-		return
-	}
-
 	if body.MontoMeta.IsNegative() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "monto_meta no puede ser negativo"})
 		return
@@ -65,7 +59,6 @@ func (eq *EditQuinielaController) Execute(c *gin.Context) {
 	q := &domain.Quiniela{
 		ID:             int32(id),
 		NombreVariante: body.NombreVariante,
-		Precio:         body.Precio,
 		MontoMeta:      body.MontoMeta,
 		FechaLimite:    body.FechaLimite,
 		Estado:         body.Estado,

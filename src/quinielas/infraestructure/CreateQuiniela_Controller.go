@@ -21,7 +21,6 @@ func NewCreateQuinielaController(useCase *application.CreateQuiniela) *CreateQui
 type CreateQuinielaRequestBody struct {
 	IDEdicion       int32       `json:"id_edicion" binding:"required"`
 	NombreVariante  string      `json:"nombre_variante"`
-	Precio          money.Money `json:"precio"`
 	MontoMeta       money.Money `json:"monto_meta"`
 	FechaLimite     time.Time   `json:"fecha_limite"`
 	Estado          string      `json:"estado"`
@@ -44,11 +43,6 @@ func (cq *CreateQuinielaController) Execute(c *gin.Context) {
 		return
 	}
 
-	if body.Precio.IsNegative() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "precio no puede ser negativo"})
-		return
-	}
-
 	if body.MontoMeta.IsNegative() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "monto_meta no puede ser negativo"})
 		return
@@ -62,7 +56,6 @@ func (cq *CreateQuinielaController) Execute(c *gin.Context) {
 	q := &domain.Quiniela{
 		IDEdicion:      body.IDEdicion,
 		NombreVariante: body.NombreVariante,
-		Precio:         body.Precio,
 		MontoMeta:      body.MontoMeta,
 		FechaLimite:    body.FechaLimite,
 		Estado:         body.Estado,
