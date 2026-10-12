@@ -18,7 +18,8 @@ func (uq *UpdateQuiniela) Execute(q *domain.Quiniela) error {
 		return err
 	}
 
-	if uq.cobro != nil {
+	// Las quinielas DESARROLLO no generan cobro directo (se fondean por aportes).
+	if uq.cobro != nil && q.TipoQuiniela != "DESARROLLO" {
 		if q.IDCliente == nil {
 			if err := uq.cobro.RevertirCobro(q.ID); err != nil {
 				return err

@@ -29,7 +29,9 @@ func (cq *CreateQuiniela) Execute(q *domain.Quiniela) (*domain.Quiniela, error) 
 		return nil, err
 	}
 
-	if cq.cobro != nil && saved.IDCliente != nil {
+	// Las quinielas DESARROLLO no generan un cobro directo al cliente
+	// responsable: se fondean con los aportes de los clientes.
+	if cq.cobro != nil && saved.IDCliente != nil && saved.TipoQuiniela != "DESARROLLO" {
 		if err := cq.cobro.SincronizarCobro(*saved.IDCliente, saved.ID, saved.TotalACobrar(), saved.MontoPagado, saved.CanalVenta); err != nil {
 			return nil, err
 		}
