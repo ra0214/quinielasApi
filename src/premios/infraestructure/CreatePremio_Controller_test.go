@@ -41,6 +41,8 @@ func (f *fakePremioRepo) UpdatePremio(idPremio int32, montoBruto money.Money) (*
 
 func (f *fakePremioRepo) DeletePremio(idPremio int32) error { return nil }
 
+func (f *fakePremioRepo) DeletePremioByQuinielaID(idQuiniela int32) error { return nil }
+
 func (f *fakePremioRepo) GetPremioByQuinielaID(idQuiniela int32) (*domain.Premio, error) {
 	return f.premio, nil
 }

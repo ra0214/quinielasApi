@@ -83,3 +83,28 @@ func (c *CobradorQuiniela) RevertirCobro(idQuiniela int32) error {
 	}
 	return nil
 }
+
+// ReembolsarCobro elimina los movimientos de la quiniela devolviendo a saldo a
+// favor lo que el cliente pagó y descartando lo fiado: los PAGO_EFECTIVO se
+// borran conservando su efecto en el saldo (queda como favor) y el resto de
+// movimientos se revierten normalmente.
+func (c *CobradorQuiniela) ReembolsarCobro(idQuiniela int32) error {
+	movimientos, err := c.repo.GetMovimientosByQuinielaID(idQuiniela)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range movimientos {
+		if m.Tipo == "PAGO_EFECTIVO" {
+			if err := c.repo.DeleteMovimiento(m.IDMovimiento); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := c.delete.Execute(m.IDMovimiento); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

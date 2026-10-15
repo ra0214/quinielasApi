@@ -15,6 +15,21 @@ var ErrLimitQuinielasExceeded = errors.New("límite alcanzado: no se pueden crea
 type CobroDirecta interface {
 	SincronizarCobro(idCliente int32, idQuiniela int32, total money.Money, pagado money.Money, canalVenta string) error
 	RevertirCobro(idQuiniela int32) error
+	// ReembolsarCobro elimina los movimientos de la quiniela dejando lo pagado
+	// (PAGO_EFECTIVO) como saldo a favor del cliente y descartando lo fiado.
+	ReembolsarCobro(idQuiniela int32) error
+}
+
+// AportesDeQuiniela borra los aportes registrados en una quiniela cuando esta
+// se elimina. Lo implementa el módulo de aportes.
+type AportesDeQuiniela interface {
+	DeleteAportesByQuinielaID(idQuiniela int32) error
+}
+
+// PremiosDeQuiniela borra el premio y su reparto (si existen) de una quiniela
+// cuando esta se elimina. Lo implementa el módulo de premios.
+type PremiosDeQuiniela interface {
+	DeletePremioByQuinielaID(idQuiniela int32) error
 }
 
 type IQuiniela interface {

@@ -94,6 +94,15 @@ func (mysql *MySQL) DeleteAporte(idAporte int32) error {
 	return nil
 }
 
+func (mysql *MySQL) DeleteAportesByQuinielaID(idQuiniela int32) error {
+	query := "DELETE FROM aportes WHERE id_quiniela = ?"
+	_, err := mysql.conn.ExecutePreparedQuery(query, idQuiniela)
+	if err != nil {
+		return fmt.Errorf("error al eliminar los aportes de la quiniela: %v", err)
+	}
+	return nil
+}
+
 func (mysql *MySQL) GetAporteByID(idAporte int32) (*domain.Aporte, error) {
 	query := "SELECT id_aporte, id_cliente, id_quiniela, monto_total_acumulado, porcentaje_participacion FROM aportes WHERE id_aporte = ?"
 	row := mysql.conn.FetchRow(query, idAporte)

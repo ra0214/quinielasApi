@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouterQuinielas(r *gin.Engine, repo domain.IQuiniela, cobro domain.CobroDirecta) {
+func SetupRouterQuinielas(r *gin.Engine, repo domain.IQuiniela, cobro domain.CobroDirecta, aportes domain.AportesDeQuiniela, premios domain.PremiosDeQuiniela) {
 	createUseCase := application.NewCreateQuiniela(repo, cobro)
-	deleteUseCase := application.NewDeleteQuiniela(repo, cobro)
+	deleteUseCase := application.NewDeleteQuiniela(repo, cobro, aportes, premios)
 	updateUseCase := application.NewUpdateQuiniela(repo, cobro)
 	viewUseCase := application.NewViewQuiniela(repo)
 

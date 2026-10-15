@@ -26,6 +26,7 @@ type IAporte interface {
 	// monto nuevo, recalcando el porcentaje de participación.
 	UpdateAporte(idAporte int32, montoNuevo money.Money, montoMetaQuiniela money.Money) (*Aporte, error)
 	DeleteAporte(idAporte int32) error
+	DeleteAportesByQuinielaID(idQuiniela int32) error
 	GetAporteByID(idAporte int32) (*Aporte, error)
 	GetAportesByQuinielaID(idQuiniela int32) ([]AporteDetalle, error)
 	GetAportesByClienteID(idCliente int32) ([]Aporte, error)

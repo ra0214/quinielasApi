@@ -87,6 +87,17 @@ func (mysql *MySQL) DeletePremio(idPremio int32) error {
 	return nil
 }
 
+func (mysql *MySQL) DeletePremioByQuinielaID(idQuiniela int32) error {
+	// Los participantes se eliminan por cascada al borrar su reparto.
+	if _, err := mysql.conn.ExecutePreparedQuery("DELETE FROM premio_repartos WHERE id_quiniela = ?", idQuiniela); err != nil {
+		return fmt.Errorf("error al eliminar el reparto del premio: %v", err)
+	}
+	if _, err := mysql.conn.ExecutePreparedQuery("DELETE FROM premios WHERE id_quiniela = ?", idQuiniela); err != nil {
+		return fmt.Errorf("error al eliminar el premio de la quiniela: %v", err)
+	}
+	return nil
+}
+
 func (mysql *MySQL) GetPremioByQuinielaID(idQuiniela int32) (*domain.Premio, error) {
 	query := "SELECT id_premio, id_quiniela, monto_bruto, porcentaje_retencion, monto_neto, fecha_registro FROM premios WHERE id_quiniela = ?"
 	row := mysql.conn.FetchRow(query, idQuiniela)

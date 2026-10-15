@@ -56,7 +56,7 @@ func main() {
 	// Registrar Rutas directamente en la misma instancia 'r'
 	clientesInfra.SetupRouterClientes(r, clienteRepo, saldoRepo)
 	edicionesInfra.SetupRouterEdiciones(r, edicionRepo)
-	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo, cobradorQuiniela)
+	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo, cobradorQuiniela, aporteRepo, premioRepo)
 	saldosInfra.SetupRouterSaldos(r, saldoRepo)
 	aportesInfra.SetupRouterAportes(r, aporteRepo, quinielaRepo, cobradorAporte)
 	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo, saldoRepo)
