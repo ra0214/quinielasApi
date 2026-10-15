@@ -20,6 +20,7 @@ func NewUpdatePremioController(useCase *application.UpdatePremio) *UpdatePremioC
 
 type UpdatePremioRequestBody struct {
 	MontoBruto money.Money `json:"monto_bruto"`
+	MontoNeto  money.Money `json:"monto_neto"`
 }
 
 func (up *UpdatePremioController) Execute(c *gin.Context) {
@@ -35,17 +36,17 @@ func (up *UpdatePremioController) Execute(c *gin.Context) {
 		return
 	}
 
-	if body.MontoBruto.IsZero() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "monto_bruto es obligatorio y debe ser mayor a 0"})
+	if body.MontoBruto.IsNegative() || body.MontoNeto.IsNegative() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "los montos no pueden ser negativos"})
 		return
 	}
 
-	if body.MontoBruto.IsNegative() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "monto_bruto no puede ser negativo"})
+	if !body.MontoBruto.GreaterThan(money.Zero()) && !body.MontoNeto.GreaterThan(money.Zero()) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "debes indicar monto_bruto o monto_neto, mayor a 0"})
 		return
 	}
 
-	premio, err := up.useCase.Execute(int32(idPremio), body.MontoBruto)
+	premio, err := up.useCase.Execute(int32(idPremio), body.MontoBruto, body.MontoNeto)
 	if err != nil {
 		if errors.Is(err, application.ErrPremioNoEncontrado) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -56,7 +57,7 @@ func (up *UpdatePremioController) Execute(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Premio actualizado y recalculado con 7% de retención correctamente",
+		"message": "Premio actualizado correctamente",
 		"premio":  premio,
 	})
 }

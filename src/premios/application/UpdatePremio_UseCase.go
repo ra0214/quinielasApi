@@ -16,10 +16,10 @@ func NewUpdatePremio(repo domain.IPremio) *UpdatePremio {
 	return &UpdatePremio{repo: repo}
 }
 
-// Execute modifica el monto bruto de un premio existente y recalcula la
-// retención de 7% y el monto neto.
-func (up *UpdatePremio) Execute(idPremio int32, montoBruto money.Money) (*domain.Premio, error) {
-	premio, err := up.repo.UpdatePremio(idPremio, montoBruto)
+// Execute modifica el monto de un premio existente y recalcula la retención
+// (7% si se captura el bruto, 0% si se captura el neto) y el monto neto.
+func (up *UpdatePremio) Execute(idPremio int32, montoBruto money.Money, montoNeto money.Money) (*domain.Premio, error) {
+	premio, err := up.repo.UpdatePremio(idPremio, montoBruto, montoNeto)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrPremioNoEncontrado

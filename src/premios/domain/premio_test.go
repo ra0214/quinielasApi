@@ -56,6 +56,36 @@ func TestNewPremioNetoMenosRetencionRecuperaElBruto(t *testing.T) {
 	}
 }
 
+func TestNewPremioDesdeNetoNoAplicaRetencion(t *testing.T) {
+	neto := money.NewFromInt64(1000)
+	premio := NewPremioDesdeNeto(1, neto)
+
+	if premio.MontoNeto.String() != "1000.00" {
+		t.Errorf("esperado monto_neto 1000.00, obtenido %s", premio.MontoNeto.String())
+	}
+	if premio.MontoBruto.String() != "1000.00" {
+		t.Errorf("esperado monto_bruto 1000.00, obtenido %s", premio.MontoBruto.String())
+	}
+	if !premio.PorcentajeRetencion.IsZero() {
+		t.Errorf("esperado porcentaje_retencion 0, obtenido %s", premio.PorcentajeRetencion.String())
+	}
+}
+
+func TestNewPremioDesdeMontosEligeBrutoONeto(t *testing.T) {
+	conBruto := NewPremioDesdeMontos(1, money.NewFromInt64(1000), money.Zero())
+	if conBruto.MontoNeto.String() != "930.00" {
+		t.Errorf("con bruto: esperado monto_neto 930.00, obtenido %s", conBruto.MontoNeto.String())
+	}
+
+	conNeto := NewPremioDesdeMontos(1, money.Zero(), money.NewFromInt64(1000))
+	if conNeto.MontoNeto.String() != "1000.00" {
+		t.Errorf("con neto: esperado monto_neto 1000.00, obtenido %s", conNeto.MontoNeto.String())
+	}
+	if conNeto.MontoBruto.String() != "1000.00" {
+		t.Errorf("con neto: esperado monto_bruto 1000.00, obtenido %s", conNeto.MontoBruto.String())
+	}
+}
+
 func TestPremioSeSerializaComoNumeroJSON(t *testing.T) {
 	premio := NewPremio(1, money.NewFromInt64(1000))
 

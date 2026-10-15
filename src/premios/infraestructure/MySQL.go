@@ -24,8 +24,8 @@ func NewMySQL() domain.IPremio {
 	return &MySQL{conn: conn}
 }
 
-func (mysql *MySQL) SavePremio(idQuiniela int32, montoBruto money.Money) (*domain.Premio, error) {
-	nuevoPremio := domain.NewPremio(idQuiniela, montoBruto)
+func (mysql *MySQL) SavePremio(idQuiniela int32, montoBruto money.Money, montoNeto money.Money) (*domain.Premio, error) {
+	nuevoPremio := domain.NewPremioDesdeMontos(idQuiniela, montoBruto, montoNeto)
 
 	query := `INSERT INTO premios (id_quiniela, monto_bruto, porcentaje_retencion, monto_neto) 
 	          VALUES (?, ?, ?, ?) 
@@ -52,8 +52,8 @@ func (mysql *MySQL) SavePremio(idQuiniela int32, montoBruto money.Money) (*domai
 	return nuevoPremio, nil
 }
 
-func (mysql *MySQL) UpdatePremio(idPremio int32, montoBruto money.Money) (*domain.Premio, error) {
-	premio := domain.NewPremio(0, montoBruto)
+func (mysql *MySQL) UpdatePremio(idPremio int32, montoBruto money.Money, montoNeto money.Money) (*domain.Premio, error) {
+	premio := domain.NewPremioDesdeMontos(0, montoBruto, montoNeto)
 	premio.IDPremio = idPremio
 
 	query := "UPDATE premios SET monto_bruto = ?, porcentaje_retencion = ?, monto_neto = ? WHERE id_premio = ?"

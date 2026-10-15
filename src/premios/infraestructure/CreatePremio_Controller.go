@@ -19,6 +19,7 @@ func NewCreatePremioController(useCase *application.CreatePremio) *CreatePremioC
 type CreatePremioRequestBody struct {
 	IDQuiniela int32       `json:"id_quiniela" binding:"required"`
 	MontoBruto money.Money `json:"monto_bruto"`
+	MontoNeto  money.Money `json:"monto_neto"`
 }
 
 func (cp *CreatePremioController) Execute(c *gin.Context) {
@@ -28,24 +29,24 @@ func (cp *CreatePremioController) Execute(c *gin.Context) {
 		return
 	}
 
-	if body.MontoBruto.IsZero() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "monto_bruto es obligatorio y debe ser mayor a 0"})
+	if body.MontoBruto.IsNegative() || body.MontoNeto.IsNegative() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "los montos no pueden ser negativos"})
 		return
 	}
 
-	if body.MontoBruto.IsNegative() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "monto_bruto no puede ser negativo"})
+	if !body.MontoBruto.GreaterThan(money.Zero()) && !body.MontoNeto.GreaterThan(money.Zero()) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "debes indicar monto_bruto o monto_neto, mayor a 0"})
 		return
 	}
 
-	premio, err := cp.useCase.Execute(body.IDQuiniela, body.MontoBruto)
+	premio, err := cp.useCase.Execute(body.IDQuiniela, body.MontoBruto, body.MontoNeto)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Premio registrado y calculado con 7% de retención correctamente",
+		"message": "Premio registrado correctamente",
 		"premio":  premio,
 	})
 }

@@ -25,15 +25,15 @@ type fakePremioRepo struct {
 	fallaGuardarReparto bool
 }
 
-func (f *fakePremioRepo) SavePremio(idQuiniela int32, montoBruto money.Money) (*domain.Premio, error) {
-	p := domain.NewPremio(idQuiniela, montoBruto)
+func (f *fakePremioRepo) SavePremio(idQuiniela int32, montoBruto money.Money, montoNeto money.Money) (*domain.Premio, error) {
+	p := domain.NewPremioDesdeMontos(idQuiniela, montoBruto, montoNeto)
 	p.IDPremio = 1
 	f.guardado = p
 	return p, nil
 }
 
-func (f *fakePremioRepo) UpdatePremio(idPremio int32, montoBruto money.Money) (*domain.Premio, error) {
-	p := domain.NewPremio(0, montoBruto)
+func (f *fakePremioRepo) UpdatePremio(idPremio int32, montoBruto money.Money, montoNeto money.Money) (*domain.Premio, error) {
+	p := domain.NewPremioDesdeMontos(0, montoBruto, montoNeto)
 	p.IDPremio = idPremio
 	f.guardado = p
 	return p, nil
