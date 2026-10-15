@@ -90,9 +90,9 @@ func main() {
 }
 
 // iniciarVencimientos revisa periódicamente las quinielas DESARROLLO vencidas.
-// El intervalo se configura con VENCIMIENTOS_MIN (minutos); por defecto 5.
+// El intervalo se configura con VENCIMIENTOS_MIN (minutos); por defecto 1.
 func iniciarVencimientos(v *quinielasApp.VencerQuinielas) {
-	intervalo := 5 * time.Minute
+	intervalo := time.Minute
 	if valor := os.Getenv("VENCIMIENTOS_MIN"); valor != "" {
 		if n, err := strconv.Atoi(valor); err == nil && n > 0 {
 			intervalo = time.Duration(n) * time.Minute
@@ -100,11 +100,18 @@ func iniciarVencimientos(v *quinielasApp.VencerQuinielas) {
 	}
 	log.Printf("⏰ Revisión de quinielas vencidas cada %s", intervalo)
 
-	ticker := time.NewTicker(intervalo)
-	defer ticker.Stop()
-	for range ticker.C {
+	procesar := func() {
 		if err := v.Procesar(time.Now()); err != nil {
 			log.Printf("Error al procesar quinielas vencidas: %v", err)
 		}
+	}
+
+	// Primera pasada al arrancar, sin esperar al primer tick.
+	procesar()
+
+	ticker := time.NewTicker(intervalo)
+	defer ticker.Stop()
+	for range ticker.C {
+		procesar()
 	}
 }
