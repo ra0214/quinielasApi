@@ -23,6 +23,7 @@ type CreateAporteRequestBody struct {
 	IDQuiniela  int32        `json:"id_quiniela" binding:"required"`
 	Monto       money.Money  `json:"monto"`
 	MontoPagado *money.Money `json:"monto_pagado"`
+	MetodoPago  string       `json:"metodo_pago"`
 }
 
 func (ca *CreateAporteController) Execute(c *gin.Context) {
@@ -58,7 +59,7 @@ func (ca *CreateAporteController) Execute(c *gin.Context) {
 		return
 	}
 
-	aporte, err := ca.useCase.Execute(body.IDCliente, body.IDQuiniela, body.Monto, montoPagado)
+	aporte, err := ca.useCase.Execute(body.IDCliente, body.IDQuiniela, body.Monto, montoPagado, body.MetodoPago)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrQuinielaNoEncontrada):

@@ -24,6 +24,17 @@ func (cq *CreateQuiniela) Execute(q *domain.Quiniela) (*domain.Quiniela, error) 
 		return nil, domain.ErrLimitQuinielasExceeded
 	}
 
+	// Un mismo analista (variante) no puede repetirse dentro del mismo número.
+	existentes, err := cq.repo.GetByEdicionID(q.IDEdicion)
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range existentes {
+		if x.NombreVariante == q.NombreVariante {
+			return nil, domain.ErrAnalistaDuplicado
+		}
+	}
+
 	// El estado de fallo se deriva de si la quiniela está sujeta a cancelación:
 	// sujeto -> 1 (cancelar), no sujeto -> 2 (el creador absorbe el faltante).
 	if q.TipoQuiniela == "DESARROLLO" && q.EstadoFallo == 0 {

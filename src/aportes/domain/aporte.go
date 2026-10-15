@@ -12,13 +12,13 @@ var (
 )
 
 // CobroAporte refleja un aporte en movimientos y saldo. Lo implementa el
-// módulo de movimientos; los aportes solo lo consumen. El monto aportado queda
-// como FIADO y lo pagado como PAGO_EFECTIVO, con su canal de venta. Un aporte
-// de contado (lo pagado iguala el monto) no altera el saldo del cliente.
+// módulo de movimientos; los aportes solo lo consumen. El monto aportado se
+// registra como FIADO y lo pagado (con su método: efectivo, tarjeta,
+// transferencia o depósito) como PAGO_EFECTIVO que lo reduce.
 type CobroAporte interface {
-	// AplicarAporte registra un aporte incremental: FIADO por el monto aportado
-	// y PAGO_EFECTIVO por lo pagado, sin revertir movimientos previos.
-	AplicarAporte(idCliente int32, idQuiniela int32, monto money.Money, pagado money.Money, canalVenta string) error
+	// AplicarAporte registra incrementalmente un aporte: el monto aportado como
+	// FIADO y lo pagado como PAGO_EFECTIVO, sin revertir movimientos previos.
+	AplicarAporte(idCliente int32, idQuiniela int32, monto money.Money, pagado money.Money, canalVenta string, metodoPago string) error
 	SincronizarAporte(idCliente int32, idQuiniela int32, total money.Money, pagado money.Money, canalVenta string) error
 	RevertirAporte(idCliente int32, idQuiniela int32) error
 }

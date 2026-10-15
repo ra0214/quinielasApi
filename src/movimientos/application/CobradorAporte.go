@@ -28,7 +28,7 @@ func NewCobradorAporte(repo movimientos.IMovimiento, create *CreateMovimiento, d
 // FIADO (deuda) y lo pagado como PAGO_EFECTIVO que la reduce. No revierte los
 // movimientos anteriores, de modo que cada aporte se acumula sobre el saldo del
 // cliente. Un aporte de contado (monto == pagado) no altera el saldo.
-func (c *CobradorAporte) AplicarAporte(idCliente int32, idQuiniela int32, monto money.Money, pagado money.Money, canalVenta string) error {
+func (c *CobradorAporte) AplicarAporte(idCliente int32, idQuiniela int32, monto money.Money, pagado money.Money, canalVenta string, metodoPago string) error {
 	if monto.IsZero() || monto.IsNegative() {
 		return nil
 	}
@@ -44,11 +44,17 @@ func (c *CobradorAporte) AplicarAporte(idCliente int32, idQuiniela int32, monto 
 		canal = canalVenta
 	}
 
+	// La parte pagada se registra con el método usado (efectivo, tarjeta, etc.).
+	referencia := canal
+	if metodoPago != "" {
+		referencia = fmt.Sprintf("%s · %s", canal, metodoPago)
+	}
+
 	if _, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", monto, fmt.Sprintf("Aporte fiado quiniela #%d (%s)", idQuiniela, canal)); err != nil {
 		return err
 	}
 	if pagado.GreaterThan(money.Zero()) {
-		if _, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Aporte a quiniela #%d (%s)", idQuiniela, canal)); err != nil {
+		if _, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Aporte a quiniela #%d (%s)", idQuiniela, referencia)); err != nil {
 			return err
 		}
 	}

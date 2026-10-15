@@ -8,6 +8,10 @@ import (
 
 var ErrLimitQuinielasExceeded = errors.New("límite alcanzado: no se pueden crear más de 5 quinielas en la misma edición")
 
+// ErrAnalistaDuplicado indica que el analista (variante) ya tiene una quiniela
+// en la misma edición (número).
+var ErrAnalistaDuplicado = errors.New("ese analista ya tiene una quiniela en este número")
+
 // ErrPuntoRetornoRequerido indica que se intentó subir la meta de una quiniela
 // con aportes sin indicar si marca punto de retorno.
 var ErrPuntoRetornoRequerido = errors.New("al aumentar la meta de una quiniela con aportes debes indicar si se marca punto de retorno")

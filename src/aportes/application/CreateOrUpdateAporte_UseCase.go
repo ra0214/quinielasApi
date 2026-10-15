@@ -16,7 +16,7 @@ func NewCreateOrUpdateAporte(repo aportesDomain.IAporte, quinielaRepo quinielasD
 	return &CreateOrUpdateAporte{repo: repo, quinielaRepo: quinielaRepo, cobro: cobro}
 }
 
-func (cua *CreateOrUpdateAporte) Execute(idCliente int32, idQuiniela int32, montoSumar money.Money, montoPagado money.Money) (*aportesDomain.Aporte, error) {
+func (cua *CreateOrUpdateAporte) Execute(idCliente int32, idQuiniela int32, montoSumar money.Money, montoPagado money.Money, metodoPago string) (*aportesDomain.Aporte, error) {
 	// La meta (tope) sale de la quiniela real en BD, no de lo que mande el cliente.
 	quiniela, err := cua.quinielaRepo.GetQuinielaByID(idQuiniela)
 	if err != nil {
@@ -44,7 +44,7 @@ func (cua *CreateOrUpdateAporte) Execute(idCliente int32, idQuiniela int32, mont
 	// (montoPagado == montoSumar) no altera el saldo; uno a crédito (montoPagado
 	// = 0) genera solo el FIADO.
 	if cua.cobro != nil {
-		if err := cua.cobro.AplicarAporte(aporte.IDCliente, aporte.IDQuiniela, montoSumar, montoPagado, quiniela.CanalVenta); err != nil {
+		if err := cua.cobro.AplicarAporte(aporte.IDCliente, aporte.IDQuiniela, montoSumar, montoPagado, quiniela.CanalVenta, metodoPago); err != nil {
 			return nil, err
 		}
 	}

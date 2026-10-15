@@ -38,6 +38,17 @@ func (uq *UpdateQuiniela) Execute(q *domain.Quiniela, puntoRetorno *bool) error 
 		return err
 	}
 
+	// Un mismo analista (variante) no puede repetirse dentro del mismo número.
+	existentes, err := uq.repo.GetByEdicionID(q.IDEdicion)
+	if err != nil {
+		return err
+	}
+	for _, x := range existentes {
+		if x.ID != q.ID && x.NombreVariante == q.NombreVariante {
+			return domain.ErrAnalistaDuplicado
+		}
+	}
+
 	// Los campos del ciclo de vida no vienen en la edición normal: se preservan.
 	q.SujetoCancelacion = actual.SujetoCancelacion
 	q.EstadoFallo = actual.EstadoFallo
