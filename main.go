@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"quinielas/src/config"
@@ -14,6 +16,7 @@ import (
 	movimientosApp "quinielas/src/movimientos/application"
 	movimientosInfra "quinielas/src/movimientos/infraestructure"
 	premiosInfra "quinielas/src/premios/infraestructure"
+	quinielasApp "quinielas/src/quinielas/application"
 	quinielasInfra "quinielas/src/quinielas/infraestructure"
 	saldosApp "quinielas/src/saldos/application"
 	saldosInfra "quinielas/src/saldos/infraestructure"
@@ -54,9 +57,10 @@ func main() {
 	cobradorAporte := movimientosApp.NewCobradorAporte(movimientoRepo, createMovimiento, deleteMovimiento)
 
 	// Registrar Rutas directamente en la misma instancia 'r'
+	aportesAdapter := quinielasInfra.NewAportesAdapter(aporteRepo)
 	clientesInfra.SetupRouterClientes(r, clienteRepo, saldoRepo)
 	edicionesInfra.SetupRouterEdiciones(r, edicionRepo)
-	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo, cobradorQuiniela, aporteRepo, premioRepo)
+	quinielasInfra.SetupRouterQuinielas(r, quinielaRepo, cobradorQuiniela, aportesAdapter, premioRepo)
 	saldosInfra.SetupRouterSaldos(r, saldoRepo)
 	aportesInfra.SetupRouterAportes(r, aporteRepo, quinielaRepo, cobradorAporte)
 	movimientosInfra.SetupRouterMovimientos(r, movimientoRepo, saldoRepo)
@@ -65,6 +69,11 @@ func main() {
 	// PREMIO_ABONO (ajusta el saldo) y puede deshacerse si el reparto falla.
 	abonadorPremio := movimientosApp.NewAbonadorPremio(createMovimiento, deleteMovimiento)
 	premiosInfra.SetupRouterPremios(r, premioRepo, aporteRepo, quinielaRepo, abonadorPremio, clienteRepo)
+
+	// Job en segundo plano: cierra las quinielas DESARROLLO vencidas aplicando
+	// la consecuencia de su estado_fallo.
+	vencerQuinielas := quinielasApp.NewVencerQuinielas(quinielaRepo, cobradorQuiniela, aportesAdapter)
+	go iniciarVencimientos(vencerQuinielas)
 
 	// Obtener el puerto dinámico de Railway
 	port := os.Getenv("PORT")
@@ -77,5 +86,25 @@ func main() {
 	// Escuchar en 0.0.0.0
 	if err := r.Run("0.0.0.0:" + port); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)
+	}
+}
+
+// iniciarVencimientos revisa periódicamente las quinielas DESARROLLO vencidas.
+// El intervalo se configura con VENCIMIENTOS_MIN (minutos); por defecto 5.
+func iniciarVencimientos(v *quinielasApp.VencerQuinielas) {
+	intervalo := 5 * time.Minute
+	if valor := os.Getenv("VENCIMIENTOS_MIN"); valor != "" {
+		if n, err := strconv.Atoi(valor); err == nil && n > 0 {
+			intervalo = time.Duration(n) * time.Minute
+		}
+	}
+	log.Printf("⏰ Revisión de quinielas vencidas cada %s", intervalo)
+
+	ticker := time.NewTicker(intervalo)
+	defer ticker.Stop()
+	for range ticker.C {
+		if err := v.Procesar(time.Now()); err != nil {
+			log.Printf("Error al procesar quinielas vencidas: %v", err)
+		}
 	}
 }

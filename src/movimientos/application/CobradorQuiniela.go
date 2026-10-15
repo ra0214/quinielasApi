@@ -2,6 +2,7 @@ package application
 
 import (
 	"fmt"
+	"time"
 
 	movimientos "quinielas/src/movimientos/domain"
 	"quinielas/src/shared/money"
@@ -107,4 +108,44 @@ func (c *CobradorQuiniela) ReembolsarCobro(idQuiniela int32) error {
 	}
 
 	return nil
+}
+
+// ReembolsarCobroDesde hace lo mismo que ReembolsarCobro pero solo con los
+// movimientos posteriores a `desde`, y devuelve por cliente el total aportado
+// en ese tramo (lo pagado más lo fiado), que es el excedente a descontar.
+func (c *CobradorQuiniela) ReembolsarCobroDesde(idQuiniela int32, desde time.Time) (map[int32]money.Money, error) {
+	movimientos, err := c.repo.GetMovimientosByQuinielaID(idQuiniela)
+	if err != nil {
+		return nil, err
+	}
+
+	excedentes := make(map[int32]money.Money)
+	for _, m := range movimientos {
+		if !m.Fecha.After(desde) {
+			continue
+		}
+		if m.Tipo == "PAGO_EFECTIVO" || m.Tipo == "FIADO" {
+			excedentes[m.IDCliente] = excedentes[m.IDCliente].Add(m.Monto)
+		}
+		if m.Tipo == "PAGO_EFECTIVO" {
+			if err := c.repo.DeleteMovimiento(m.IDMovimiento); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		if err := c.delete.Execute(m.IDMovimiento); err != nil {
+			return nil, err
+		}
+	}
+
+	return excedentes, nil
+}
+
+// RegistrarFiado registra un FIADO contra el cliente indicado.
+func (c *CobradorQuiniela) RegistrarFiado(idCliente int32, idQuiniela int32, monto money.Money, descripcion string) error {
+	if monto.IsZero() || monto.IsNegative() {
+		return nil
+	}
+	_, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", monto, descripcion)
+	return err
 }

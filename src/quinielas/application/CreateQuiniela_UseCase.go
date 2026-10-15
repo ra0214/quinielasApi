@@ -24,6 +24,16 @@ func (cq *CreateQuiniela) Execute(q *domain.Quiniela) (*domain.Quiniela, error) 
 		return nil, domain.ErrLimitQuinielasExceeded
 	}
 
+	// El estado de fallo se deriva de si la quiniela está sujeta a cancelación:
+	// sujeto -> 1 (cancelar), no sujeto -> 2 (el creador absorbe el faltante).
+	if q.TipoQuiniela == "DESARROLLO" && q.EstadoFallo == 0 {
+		if q.SujetoCancelacion {
+			q.EstadoFallo = 1
+		} else {
+			q.EstadoFallo = 2
+		}
+	}
+
 	saved, err := cq.repo.SaveQuiniela(q)
 	if err != nil {
 		return nil, err

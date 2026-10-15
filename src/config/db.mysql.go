@@ -103,6 +103,10 @@ func (conn *Conn_MySQL) AutoAlterQuinielas() error {
 		{"analista", "ALTER TABLE quinielas ADD COLUMN analista VARCHAR(100) DEFAULT NULL"},
 		{"tipo_pago", "ALTER TABLE quinielas ADD COLUMN tipo_pago VARCHAR(30) DEFAULT NULL"},
 		{"canal_venta", "ALTER TABLE quinielas ADD COLUMN canal_venta VARCHAR(20) DEFAULT NULL"},
+		{"sujeto_cancelacion", "ALTER TABLE quinielas ADD COLUMN sujeto_cancelacion TINYINT(1) NOT NULL DEFAULT 1"},
+		{"estado_fallo", "ALTER TABLE quinielas ADD COLUMN estado_fallo TINYINT NOT NULL DEFAULT 0"},
+		{"monto_meta_anterior", "ALTER TABLE quinielas ADD COLUMN monto_meta_anterior DECIMAL(12,2) DEFAULT NULL"},
+		{"fecha_meta_anterior", "ALTER TABLE quinielas ADD COLUMN fecha_meta_anterior DATETIME DEFAULT NULL"},
 	}
 	for _, col := range columnas {
 		existe, err := conn.existeColumna("quinielas", col.nombre)

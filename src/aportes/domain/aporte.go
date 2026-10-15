@@ -27,6 +27,7 @@ type IAporte interface {
 	UpdateAporte(idAporte int32, montoNuevo money.Money, montoMetaQuiniela money.Money) (*Aporte, error)
 	DeleteAporte(idAporte int32) error
 	DeleteAportesByQuinielaID(idQuiniela int32) error
+	ReducirAporte(idCliente int32, idQuiniela int32, monto money.Money, meta money.Money) error
 	GetAporteByID(idAporte int32) (*Aporte, error)
 	GetAportesByQuinielaID(idQuiniela int32) ([]AporteDetalle, error)
 	GetAportesByClienteID(idCliente int32) ([]Aporte, error)

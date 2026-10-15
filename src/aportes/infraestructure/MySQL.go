@@ -103,6 +103,32 @@ func (mysql *MySQL) DeleteAportesByQuinielaID(idQuiniela int32) error {
 	return nil
 }
 
+func (mysql *MySQL) ReducirAporte(idCliente int32, idQuiniela int32, monto money.Money, meta money.Money) error {
+	querySelect := "SELECT id_aporte, monto_total_acumulado FROM aportes WHERE id_cliente = ? AND id_quiniela = ?"
+	row := mysql.conn.FetchRow(querySelect, idCliente, idQuiniela)
+
+	var idAporte int32
+	var acumulado money.Money
+	if err := row.Scan(&idAporte, &acumulado); err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		return fmt.Errorf("error al buscar el aporte a reducir: %v", err)
+	}
+
+	nuevo := acumulado.Sub(monto)
+	if nuevo.IsNegative() {
+		nuevo = money.Zero()
+	}
+	porcentaje := money.PercentOf(nuevo, meta)
+
+	queryUpdate := "UPDATE aportes SET monto_total_acumulado = ?, porcentaje_participacion = ? WHERE id_aporte = ?"
+	if _, err := mysql.conn.ExecutePreparedQuery(queryUpdate, nuevo, porcentaje, idAporte); err != nil {
+		return fmt.Errorf("error al reducir el aporte: %v", err)
+	}
+	return nil
+}
+
 func (mysql *MySQL) GetAporteByID(idAporte int32) (*domain.Aporte, error) {
 	query := "SELECT id_aporte, id_cliente, id_quiniela, monto_total_acumulado, porcentaje_participacion FROM aportes WHERE id_aporte = ?"
 	row := mysql.conn.FetchRow(query, idAporte)

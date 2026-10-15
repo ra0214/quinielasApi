@@ -30,6 +30,7 @@ type CreateQuinielaRequestBody struct {
 	Analista        string      `json:"analista"`
 	TipoPago        string      `json:"tipo_pago"`
 	CanalVenta      string      `json:"canal_venta"`
+	SujetoCancelacion bool      `json:"sujeto_cancelacion"`
 }
 
 func validarCanalVenta(canal string) bool {
@@ -65,6 +66,7 @@ func (cq *CreateQuinielaController) Execute(c *gin.Context) {
 		Analista:       body.Analista,
 		TipoPago:       body.TipoPago,
 		CanalVenta:     body.CanalVenta,
+		SujetoCancelacion: body.SujetoCancelacion,
 	}
 	if q.Estado == "" {
 		q.Estado = "EN_JUEGO"

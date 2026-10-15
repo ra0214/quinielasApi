@@ -1,6 +1,7 @@
 package infraestructure
 
 import (
+	"errors"
 	"net/http"
 	"quinielas/src/quinielas/application"
 	"quinielas/src/quinielas/domain"
@@ -30,6 +31,7 @@ type EditQuinielaRequestBody struct {
 	Analista        string      `json:"analista"`
 	TipoPago        string      `json:"tipo_pago"`
 	CanalVenta      string      `json:"canal_venta"`
+	PuntoRetorno    *bool       `json:"punto_retorno,omitempty"`
 }
 
 func (eq *EditQuinielaController) Execute(c *gin.Context) {
@@ -72,8 +74,12 @@ func (eq *EditQuinielaController) Execute(c *gin.Context) {
 	if q.Estado == "" {
 		q.Estado = "EN_JUEGO"
 	}
-	err = eq.useCase.Execute(q)
+	err = eq.useCase.Execute(q, body.PuntoRetorno)
 	if err != nil {
+		if errors.Is(err, domain.ErrPuntoRetornoRequerido) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar la quiniela", "detalles": err.Error()})
 		return
 	}

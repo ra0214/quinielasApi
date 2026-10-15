@@ -10,7 +10,7 @@ import (
 func SetupRouterQuinielas(r *gin.Engine, repo domain.IQuiniela, cobro domain.CobroDirecta, aportes domain.AportesDeQuiniela, premios domain.PremiosDeQuiniela) {
 	createUseCase := application.NewCreateQuiniela(repo, cobro)
 	deleteUseCase := application.NewDeleteQuiniela(repo, cobro, aportes, premios)
-	updateUseCase := application.NewUpdateQuiniela(repo, cobro)
+	updateUseCase := application.NewUpdateQuiniela(repo, cobro, aportes)
 	viewUseCase := application.NewViewQuiniela(repo)
 
 	createController := NewCreateQuinielaController(createUseCase)
