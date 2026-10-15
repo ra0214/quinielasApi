@@ -102,10 +102,19 @@ func (v *VencerQuinielas) absorberCreador(q *domain.Quiniela, recaudado money.Mo
 		q.Estado = "COMPLETADA"
 		return v.repo.UpdateQuiniela(q)
 	}
-	if faltante.GreaterThan(money.Zero()) && v.cobro != nil {
-		descripcion := fmt.Sprintf("Absorcion de faltante por cierre de la quiniela #%d", q.ID)
-		if err := v.cobro.RegistrarFiado(*q.IDCliente, q.ID, faltante, descripcion); err != nil {
-			return err
+	if faltante.GreaterThan(money.Zero()) {
+		// El creador absorbe el faltante: lo aporta (completando la meta) y se
+		// le carga como fiado para que quede como deuda suya.
+		if v.aportes != nil {
+			if err := v.aportes.AgregarAporte(*q.IDCliente, q.ID, faltante, q.MontoMeta); err != nil {
+				return err
+			}
+		}
+		if v.cobro != nil {
+			descripcion := fmt.Sprintf("Aporte fiado quiniela #%d (cierre)", q.ID)
+			if err := v.cobro.RegistrarFiado(*q.IDCliente, q.ID, faltante, descripcion); err != nil {
+				return err
+			}
 		}
 	}
 	q.Estado = "COMPLETADA"

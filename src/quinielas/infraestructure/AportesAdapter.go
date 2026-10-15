@@ -40,3 +40,8 @@ func (a *AportesAdapter) GetAportesByQuinielaID(idQuiniela int32) ([]domain.Apor
 func (a *AportesAdapter) ReducirAporte(idCliente int32, idQuiniela int32, monto money.Money, meta money.Money) error {
 	return a.repo.ReducirAporte(idCliente, idQuiniela, monto, meta)
 }
+
+func (a *AportesAdapter) AgregarAporte(idCliente int32, idQuiniela int32, monto money.Money, meta money.Money) error {
+	_, err := a.repo.SaveOrUpdateAporte(idCliente, idQuiniela, monto, meta)
+	return err
+}

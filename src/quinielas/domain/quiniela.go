@@ -39,6 +39,10 @@ type AportesDeQuiniela interface {
 	// ReducirAporte descuenta `monto` del acumulado del cliente en la quiniela
 	// y recalcula su porcentaje con `meta`.
 	ReducirAporte(idCliente int32, idQuiniela int32, monto money.Money, meta money.Money) error
+	// AgregarAporte suma `monto` al aporte del cliente en la quiniela (lo crea
+	// si no existe) y recalcula su porcentaje con `meta`. Se usa cuando el
+	// creador absorbe el faltante y la quiniela se completa.
+	AgregarAporte(idCliente int32, idQuiniela int32, monto money.Money, meta money.Money) error
 }
 
 // AporteResumen es la vista mínima de un aporte para el ciclo de vida.
