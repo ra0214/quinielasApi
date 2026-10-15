@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"quinielas/src/ediciones/application"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,8 +18,9 @@ func NewEditEdicionController(useCase *application.UpdateEdicion) *EditEdicionCo
 }
 
 type EditEdicionRequestBody struct {
-	TipoEdicion   string `json:"tipo_edicion" binding:"required"`
-	NombreEdicion string `json:"nombre_edicion" binding:"required"`
+	TipoEdicion   string     `json:"tipo_edicion" binding:"required"`
+	NombreEdicion string     `json:"nombre_edicion" binding:"required"`
+	FechaLimite   *time.Time `json:"fecha_limite"`
 }
 
 func (ec *EditEdicionController) Execute(c *gin.Context) {
@@ -35,7 +37,7 @@ func (ec *EditEdicionController) Execute(c *gin.Context) {
 		return
 	}
 
-	err = ec.useCase.Execute(int32(id), body.TipoEdicion, body.NombreEdicion)
+	err = ec.useCase.Execute(int32(id), body.TipoEdicion, body.NombreEdicion, body.FechaLimite)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar la edición", "detalles": err.Error()})
 		return

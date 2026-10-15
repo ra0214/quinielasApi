@@ -3,6 +3,7 @@ package infraestructure
 import (
 	"net/http"
 	"quinielas/src/ediciones/application"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,8 +17,9 @@ func NewCreateEdicionController(useCase *application.CreateEdicion) *CreateEdici
 }
 
 type CreateEdicionRequestBody struct {
-	TipoEdicion   string `json:"tipo_edicion" binding:"required"`
-	NombreEdicion string `json:"nombre_edicion" binding:"required"`
+	TipoEdicion   string     `json:"tipo_edicion" binding:"required"`
+	NombreEdicion string     `json:"nombre_edicion" binding:"required"`
+	FechaLimite   *time.Time `json:"fecha_limite"`
 }
 
 func (cc *CreateEdicionController) Execute(c *gin.Context) {
@@ -27,7 +29,7 @@ func (cc *CreateEdicionController) Execute(c *gin.Context) {
 		return
 	}
 
-	edicion, err := cc.useCase.Execute(body.TipoEdicion, body.NombreEdicion)
+	edicion, err := cc.useCase.Execute(body.TipoEdicion, body.NombreEdicion, body.FechaLimite)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

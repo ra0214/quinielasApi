@@ -1,10 +1,12 @@
 package infraestructure
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"quinielas/src/config"
 	"quinielas/src/ediciones/domain"
+	"time"
 )
 
 type MySQL struct {
@@ -21,9 +23,9 @@ func NewMySQL() domain.IEdicion {
 	return &MySQL{conn: conn}
 }
 
-func (mysql *MySQL) SaveEdicion(tipoEdicion string, nombreEdicion string) (*domain.Edicion, error) {
-	query := "INSERT INTO ediciones (tipo_edicion, nombre_edicion) VALUES (?, ?)"
-	result, err := mysql.conn.ExecutePreparedQuery(query, tipoEdicion, nombreEdicion)
+func (mysql *MySQL) SaveEdicion(tipoEdicion string, nombreEdicion string, fechaLimite *time.Time) (*domain.Edicion, error) {
+	query := "INSERT INTO ediciones (tipo_edicion, nombre_edicion, fecha_limite) VALUES (?, ?, ?)"
+	result, err := mysql.conn.ExecutePreparedQuery(query, tipoEdicion, nombreEdicion, fechaLimite)
 	if err != nil {
 		return nil, fmt.Errorf("error al guardar edición: %v", err)
 	}
@@ -33,7 +35,7 @@ func (mysql *MySQL) SaveEdicion(tipoEdicion string, nombreEdicion string) (*doma
 		return nil, fmt.Errorf("error al obtener ID insertado: %v", err)
 	}
 
-	edicion := domain.NewEdicion(tipoEdicion, nombreEdicion)
+	edicion := domain.NewEdicion(tipoEdicion, nombreEdicion, fechaLimite)
 	edicion.ID = int32(id)
 
 	log.Printf("[MySQL] - Edición creada correctamente: ID:%d Nombre:%s", id, nombreEdicion)
@@ -41,7 +43,7 @@ func (mysql *MySQL) SaveEdicion(tipoEdicion string, nombreEdicion string) (*doma
 }
 
 func (mysql *MySQL) GetAll() ([]domain.Edicion, error) {
-	query := "SELECT id_edicion, tipo_edicion, nombre_edicion, fecha_inicio FROM ediciones ORDER BY id_edicion DESC"
+	query := "SELECT id_edicion, tipo_edicion, nombre_edicion, fecha_inicio, fecha_limite FROM ediciones ORDER BY id_edicion DESC"
 	rows, err := mysql.conn.FetchRows(query)
 	if err != nil {
 		return nil, fmt.Errorf("error al ejecutar la consulta SELECT: %v", err)
@@ -52,8 +54,12 @@ func (mysql *MySQL) GetAll() ([]domain.Edicion, error) {
 
 	for rows.Next() {
 		var e domain.Edicion
-		if err := rows.Scan(&e.ID, &e.TipoEdicion, &e.NombreEdicion, &e.FechaInicio); err != nil {
+		var fechaLimite sql.NullTime
+		if err := rows.Scan(&e.ID, &e.TipoEdicion, &e.NombreEdicion, &e.FechaInicio, &fechaLimite); err != nil {
 			return nil, fmt.Errorf("error al escanear la fila: %v", err)
+		}
+		if fechaLimite.Valid {
+			e.FechaLimite = &fechaLimite.Time
 		}
 		ediciones = append(ediciones, e)
 	}
@@ -62,21 +68,24 @@ func (mysql *MySQL) GetAll() ([]domain.Edicion, error) {
 }
 
 func (mysql *MySQL) GetEdicionByID(id int32) (*domain.Edicion, error) {
-	query := "SELECT id_edicion, tipo_edicion, nombre_edicion, fecha_inicio FROM ediciones WHERE id_edicion = ?"
+	query := "SELECT id_edicion, tipo_edicion, nombre_edicion, fecha_inicio, fecha_limite FROM ediciones WHERE id_edicion = ?"
 	row := mysql.conn.FetchRow(query, id)
 
 	var e domain.Edicion
-	err := row.Scan(&e.ID, &e.TipoEdicion, &e.NombreEdicion, &e.FechaInicio)
-	if err != nil {
-		return nil, fmt.Errorf("edición no encontrada: %v", err)
+	var fechaLimite sql.NullTime
+	if err := row.Scan(&e.ID, &e.TipoEdicion, &e.NombreEdicion, &e.FechaInicio, &fechaLimite); err != nil {
+		return nil, fmt.Errorf("error al obtener la edición: %v", err)
+	}
+	if fechaLimite.Valid {
+		e.FechaLimite = &fechaLimite.Time
 	}
 
 	return &e, nil
 }
 
-func (mysql *MySQL) UpdateEdicion(id int32, tipoEdicion string, nombreEdicion string) error {
-	query := "UPDATE ediciones SET tipo_edicion = ?, nombre_edicion = ? WHERE id_edicion = ?"
-	result, err := mysql.conn.ExecutePreparedQuery(query, tipoEdicion, nombreEdicion, id)
+func (mysql *MySQL) UpdateEdicion(id int32, tipoEdicion string, nombreEdicion string, fechaLimite *time.Time) error {
+	query := "UPDATE ediciones SET tipo_edicion = ?, nombre_edicion = ?, fecha_limite = ? WHERE id_edicion = ?"
+	result, err := mysql.conn.ExecutePreparedQuery(query, tipoEdicion, nombreEdicion, fechaLimite, id)
 	if err != nil {
 		return fmt.Errorf("error al actualizar edición: %v", err)
 	}

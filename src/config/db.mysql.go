@@ -140,6 +140,22 @@ func (conn *Conn_MySQL) AutoAlterQuinielas() error {
 	return nil
 }
 
+// AutoAlterEdiciones asegura que exista la columna fecha_limite (cierre del
+// concurso) en la tabla ediciones, de forma idempotente.
+func (conn *Conn_MySQL) AutoAlterEdiciones() error {
+	existe, err := conn.existeColumna("ediciones", "fecha_limite")
+	if err != nil {
+		return err
+	}
+	if existe {
+		return nil
+	}
+	if _, err := conn.DB.Exec("ALTER TABLE ediciones ADD COLUMN fecha_limite TIMESTAMP NULL DEFAULT NULL"); err != nil {
+		return fmt.Errorf("error al agregar fecha_limite a ediciones: %w", err)
+	}
+	return nil
+}
+
 func (conn *Conn_MySQL) existeColumna(tabla, columna string) (bool, error) {
 	var n int
 	err := conn.DB.QueryRow(
