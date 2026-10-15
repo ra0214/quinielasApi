@@ -38,11 +38,13 @@ func (cua *CreateOrUpdateAporte) Execute(idCliente int32, idQuiniela int32, mont
 		return nil, err
 	}
 
-	// Cada aporte se registra en movimientos (con su canal de venta): la parte
-	// pagada como PAGO_EFECTIVO y lo pendiente como FIADO, ajustando el saldo
-	// del cliente. Un aporte a crédito (montoPagado = 0) solo genera el FIADO.
+	// Cada aporte se registra en movimientos de forma incremental (con su canal
+	// de venta): el monto aportado como FIADO y lo pagado como PAGO_EFECTIVO que
+	// lo reduce, ajustando el saldo del cliente. Un aporte de contado
+	// (montoPagado == montoSumar) no altera el saldo; uno a crédito (montoPagado
+	// = 0) genera solo el FIADO.
 	if cua.cobro != nil {
-		if err := cua.cobro.SincronizarAporte(aporte.IDCliente, aporte.IDQuiniela, aporte.MontoTotalAcumulado, montoPagado, quiniela.CanalVenta); err != nil {
+		if err := cua.cobro.AplicarAporte(aporte.IDCliente, aporte.IDQuiniela, montoSumar, montoPagado, quiniela.CanalVenta); err != nil {
 			return nil, err
 		}
 	}

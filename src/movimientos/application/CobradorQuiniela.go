@@ -47,23 +47,14 @@ func (c *CobradorQuiniela) SincronizarCobro(idCliente int32, idQuiniela int32, t
 		canal = canalVenta
 	}
 
-	if pagado.IsZero() {
-		_, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", total, fmt.Sprintf("Fiado por compra %s quiniela #%d", canal, idQuiniela))
+	// El total se carga como FIADO (deuda) y lo pagado se aplica como
+	// PAGO_EFECTIVO que la reduce. Así un pago de contado deja el saldo en cero
+	// y solo lo realmente fiado queda como deuda.
+	if _, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", total, fmt.Sprintf("Compra fiada %s quiniela #%d", canal, idQuiniela)); err != nil {
 		return err
 	}
-
-	if pagado.Cmp(total) == 0 {
-		_, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Compra %s quiniela #%d", canal, idQuiniela))
-		return err
-	}
-
-	// Pago parcial: pago efectivo + resto fiado.
-	if _, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Pago parcial %s quiniela #%d", canal, idQuiniela)); err != nil {
-		return err
-	}
-	faltante := total.Sub(pagado)
-	if faltante.GreaterThan(money.Zero()) {
-		if _, err := c.create.Execute(idCliente, &idQuiniela, "FIADO", faltante, fmt.Sprintf("Saldo fiado %s quiniela #%d", canal, idQuiniela)); err != nil {
+	if pagado.GreaterThan(money.Zero()) {
+		if _, err := c.create.Execute(idCliente, &idQuiniela, "PAGO_EFECTIVO", pagado, fmt.Sprintf("Compra %s quiniela #%d", canal, idQuiniela)); err != nil {
 			return err
 		}
 	}
@@ -112,7 +103,7 @@ func (c *CobradorQuiniela) ReembolsarCobro(idQuiniela int32) error {
 
 // ReembolsarCobroDesde hace lo mismo que ReembolsarCobro pero solo con los
 // movimientos posteriores a `desde`, y devuelve por cliente el total aportado
-// en ese tramo (lo pagado más lo fiado), que es el excedente a descontar.
+// en ese tramo (el FIADO de cada compra), que es el excedente a descontar.
 func (c *CobradorQuiniela) ReembolsarCobroDesde(idQuiniela int32, desde time.Time) (map[int32]money.Money, error) {
 	movimientos, err := c.repo.GetMovimientosByQuinielaID(idQuiniela)
 	if err != nil {
@@ -124,7 +115,7 @@ func (c *CobradorQuiniela) ReembolsarCobroDesde(idQuiniela int32, desde time.Tim
 		if !m.Fecha.After(desde) {
 			continue
 		}
-		if m.Tipo == "PAGO_EFECTIVO" || m.Tipo == "FIADO" {
+		if m.Tipo == "FIADO" {
 			excedentes[m.IDCliente] = excedentes[m.IDCliente].Add(m.Monto)
 		}
 		if m.Tipo == "PAGO_EFECTIVO" {
