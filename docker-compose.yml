@@ -11,8 +11,6 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./bd_quinielas.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uquinielas", "-pquinielas_pass"]
       interval: 10s
@@ -33,8 +31,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "8080:8080"
 
   web:
     build: ../front

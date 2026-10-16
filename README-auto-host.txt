@@ -33,7 +33,6 @@ funcione, el FRONT debe estar en una carpeta hermana llamada "front".
 
 4. Acceder
    - Aplicacion: http://IP_DEL_SERVIDOR/   (ej. http://192.168.1.100/)
-   - API directa: http://IP_DEL_SERVIDOR:8080/  (solo para pruebas)
 
 5. Datos
    - MySQL persiste en el volumen docker "db_data".
@@ -46,5 +45,7 @@ funcione, el FRONT debe estar en una carpeta hermana llamada "front".
 
 Notas:
 - LAN-only: basta con usar la IP interna del equipo (ipconfig / ifconfig). No hace falta abrir puertos al exterior.
-- Los servicios escuchan en 80 (web) y 8080 (api) internamente; expuestos en el host en 80 y 8080
-  (puedes cambiar los puertos en docker-compose.yml si hay conflicto).
+- Solo se publica el puerto 80 (web) hacia el host. La base de datos y el API quedan
+  dentro de la red de Docker (el front los alcanza por nginx), asi que casi no hay
+  riesgo de choque con otros programas. Si el puerto 80 esta ocupado, cambia el mapeo
+  del servicio "web" en docker-compose.yml (ej. "8080:80" y accede por http://IP:8080).
