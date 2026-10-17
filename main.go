@@ -13,6 +13,8 @@ import (
 	aportesInfra "quinielas/src/aportes/infraestructure"
 	clientesInfra "quinielas/src/clientes/infraestructure"
 	edicionesInfra "quinielas/src/ediciones/infraestructure"
+	mantenimientoApp "quinielas/src/mantenimiento/application"
+	mantenimientoInfra "quinielas/src/mantenimiento/infraestructure"
 	movimientosApp "quinielas/src/movimientos/application"
 	movimientosInfra "quinielas/src/movimientos/infraestructure"
 	premiosInfra "quinielas/src/premios/infraestructure"
@@ -75,6 +77,11 @@ func main() {
 	vencerQuinielas := quinielasApp.NewVencerQuinielas(quinielaRepo, cobradorQuiniela, aportesAdapter)
 	go iniciarVencimientos(vencerQuinielas)
 
+	// Job en segundo plano: elimina los concursos cerrados hace mas de N meses
+	// (retencion configurable con RETENCION_MESES; por defecto 6). No toca los saldos.
+	purgarConcursos := mantenimientoApp.NewPurgarConcursos(mantenimientoInfra.NewMySQL(), mesesRetencion())
+	go iniciarPurga(purgarConcursos)
+
 	// Obtener el puerto dinámico de Railway
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -114,4 +121,43 @@ func iniciarVencimientos(v *quinielasApp.VencerQuinielas) {
 	for range ticker.C {
 		procesar()
 	}
+}
+
+// iniciarPurga elimina periódicamente los concursos cerrados hace más de N
+// meses. El intervalo se configura con PURGA_MIN (minutos); por defecto 1440
+// (una vez al día).
+func iniciarPurga(p *mantenimientoApp.PurgarConcursos) {
+	intervalo := 24 * time.Hour
+	if valor := os.Getenv("PURGA_MIN"); valor != "" {
+		if n, err := strconv.Atoi(valor); err == nil && n > 0 {
+			intervalo = time.Duration(n) * time.Minute
+		}
+	}
+	log.Printf("🧹 Purga de concursos antiguos cada %s", intervalo)
+
+	procesar := func() {
+		if err := p.Procesar(time.Now()); err != nil {
+			log.Printf("Error al purgar concursos antiguos: %v", err)
+		}
+	}
+
+	// Primera pasada al arrancar, sin esperar al primer tick.
+	procesar()
+
+	ticker := time.NewTicker(intervalo)
+	defer ticker.Stop()
+	for range ticker.C {
+		procesar()
+	}
+}
+
+// mesesRetencion indica cuántos meses se conservan los concursos cerrados.
+// Se configura con RETENCION_MESES; por defecto 6.
+func mesesRetencion() int {
+	if valor := os.Getenv("RETENCION_MESES"); valor != "" {
+		if n, err := strconv.Atoi(valor); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 6
 }
